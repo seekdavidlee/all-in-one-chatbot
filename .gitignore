@@ -1,1 +1,6 @@
 .venv
+.vs
+
+bin
+obj
+launchsettings.json
