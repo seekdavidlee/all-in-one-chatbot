@@ -3,29 +3,63 @@
 using LLama.Common;
 using LLama;
 using chatbot2;
-using System.Diagnostics;
+using Microsoft.Extensions.Configuration;
+
+// generate code for dependency injection
+IConfiguration config = new ConfigurationBuilder()
+       .AddCommandLine(args)
+       .Build();
 
 using var vectorDb = new VectorDbClient();
 await vectorDb.InitAsync();
 
-// await vectorDb.SearchAsync("what is a container?");
-
-var dataSourcePath = Environment.GetEnvironmentVariable("DataSourcePath") ?? throw new Exception("Missing DataSourcePath!");
-var htmlReader = new HtmlReader();
-
-foreach (var page in await htmlReader.ReadFilesAsync(dataSourcePath))
+var searchText = config["search"];
+if (searchText is not null)
 {
-    Console.WriteLine($"processing page: {page.Context.PagePath}...");
-    foreach (var section in page.Sections)
+    var results = await vectorDb.SearchAsync(searchText);
+    if (!results.Any())
     {
-        Console.WriteLine($"processing section: {section.IdPrefix}...");
-        Console.WriteLine(section);
-        // await vectorDb.ProcessAsync(section);
+        Console.WriteLine("no results found");
+        return;
     }
+    foreach (var result in results)
+    {
+        Console.WriteLine(result);
+    }
+    return;
 }
 
-Console.WriteLine("done!");
-return;
+var deleteSearch = config["delete-search"];
+if (deleteSearch == "true")
+{
+    await vectorDb.DeleteAsync();
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("database deleted");
+    Console.ResetColor();
+    return;
+}
+
+var ingestData = config["ingest-data"];
+if (ingestData == "true")
+{
+    var dataSourcePath = Environment.GetEnvironmentVariable("DataSourcePath") ?? throw new Exception("Missing DataSourcePath!");
+    var htmlReader = new HtmlReader();
+
+    Console.ForegroundColor = ConsoleColor.Green;
+    foreach (var page in await htmlReader.ReadFilesAsync(dataSourcePath))
+    {
+        Console.WriteLine($"processing page: {page.Context.PagePath}...");
+        foreach (var section in page.Sections)
+        {
+            Console.WriteLine($"processing section: {section.IdPrefix}...");
+            Console.WriteLine(section);
+            await vectorDb.ProcessAsync(section);
+        }
+    }
+    Console.ResetColor();
+    return;
+}
+
 ////var result = await Embedding.GetEmbeddingsAsync("Hello, world!");
 
 //string modelPath = Environment.GetEnvironmentVariable("ModelFilePath") ?? throw new Exception("Missing ModelFilePath!"); // change it to your own model path.
