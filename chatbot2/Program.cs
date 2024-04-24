@@ -24,22 +24,6 @@ var provider = services.BuildServiceProvider();
 var vectorDb = provider.GetServices<IVectorDb>().GetSelectedVectorDb();
 await vectorDb.InitAsync();
 
-//var searchText = argsConfig["search"];
-//if (searchText is not null)
-//{
-//    var results = await vectorDb.SearchAsync(searchText);
-//    if (!results.Any())
-//    {
-//        Console.WriteLine("no results found");
-//        return;
-//    }
-//    foreach (var result in results)
-//    {
-//        Console.WriteLine(result);
-//    }
-//    return;
-//}
-
 var deleteSearch = argsConfig["delete-search"];
 if (deleteSearch == "true")
 {
@@ -53,21 +37,28 @@ if (deleteSearch == "true")
 var ingestData = argsConfig["ingest"];
 if (ingestData == "true")
 {
-    var dataSourcePath = Environment.GetEnvironmentVariable("DataSourcePath") ?? throw new Exception("Missing DataSourcePath!");
+    string[] dataSourcePaths = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths!")).Split(',');
     var htmlReader = new HtmlReader();
 
-    Console.ForegroundColor = ConsoleColor.Green;
-    foreach (var page in await htmlReader.ReadFilesAsync(dataSourcePath))
+    foreach (var dataSourcePath in dataSourcePaths)
     {
-        Console.WriteLine($"processing page: {page.Context.PagePath}...");
-        foreach (var section in page.Sections)
+        Console.WriteLine($"processing data source: {dataSourcePath}...");
+        var result = await htmlReader.ReadFilesAsync(dataSourcePath);
+        foreach (var page in result.Pages)
         {
-            Console.WriteLine($"processing section: {section.IdPrefix}...");
-            Console.WriteLine(section);
-            await vectorDb.ProcessAsync(section);
+            Console.WriteLine($"processing page: {page.Context.PagePath}...");
+            foreach (var section in page.Sections)
+            {
+                Console.WriteLine($"processing section: {section.IdPrefix}...");
+                Console.WriteLine(section);
+                await vectorDb.ProcessAsync(section);
+            }
+        }
+        foreach (var log in result.Logs)
+        {
+            Console.WriteLine($"log: {log.Text}, source: {log.Source}");
         }
     }
-    Console.ResetColor();
     return;
 }
 

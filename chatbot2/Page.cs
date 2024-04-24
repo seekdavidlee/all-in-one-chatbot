@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using System.Reflection.PortableExecutable;
 
 namespace chatbot2;
 
@@ -7,7 +8,8 @@ public class Page
     private readonly HtmlNode node;
     private readonly PageContext pageContext;
     private readonly List<PageSection> sections = new();
-    public Page(HtmlNode node, PageContext pageContext)
+    private readonly List<PageLogEntry> logs = new();
+    public Page(HtmlNode node, PageContext pageContext, List<PageLogEntry> logs)
     {
         this.node = node;
         this.pageContext = pageContext;
@@ -15,14 +17,36 @@ public class Page
 
     public void Process()
     {
-        var headers = node.SelectNodes("//h1");
+        HtmlNodeCollection headers;
+        try
+        {
+            headers = node.SelectNodes("//h1");
+            if (headers is null)
+            {
+                logs.Add(new PageLogEntry { Source = pageContext.PagePath, Text = $"h1 not found: {node.OuterHtml}" });
+                return;
+            }
+        }
+        catch (NullReferenceException)
+        {
+            logs.Add(new PageLogEntry { Source = pageContext.PagePath, Text = $"error processing h2: {node.OuterHtml}" });
+            return;
+        }
+
         foreach (var header in headers)
         {
-            foreach (var subHeader in header.SelectNodes("//h2"))
+            try
             {
-                var section = new PageSection(subHeader, sections.Count, pageContext, $"# {header.InnerText}", "h2");
-                section.Process();
-                sections.Add(section);
+                foreach (var subHeader in header.SelectNodes("//h2"))
+                {
+                    var section = new PageSection(subHeader, sections.Count, pageContext, $"# {header.InnerText}", "h2");
+                    section.Process();
+                    sections.Add(section);
+                }
+            }
+            catch (NullReferenceException)
+            {
+                logs.Add(new PageLogEntry { Source = pageContext.PagePath, Text = $"error processing h2: {header.OuterHtml}" });
             }
         }
     }
@@ -30,4 +54,11 @@ public class Page
     public PageContext Context { get { return pageContext; } }
 
     public List<PageSection> Sections { get { return sections; } }
+}
+
+public class PageLogEntry
+{
+    public string? Source { get; set; }
+
+    public string? Text { get; set; }
 }
