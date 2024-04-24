@@ -8,6 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="Prompts\DetermineIntent.txt" />
+    <None Remove="Prompts\DetermineReply.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Prompts\DetermineIntent.txt" />
+    <EmbeddedResource Include="Prompts\DetermineReply.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Azure.AI.OpenAI" Version="1.0.0-beta.16" />
+    <PackageReference Include="Azure.Search.Documents" Version="11.5.1" />
     <PackageReference Include="ChromaDBSharp" Version="0.0.1" />
     <PackageReference Include="HtmlAgilityPack" Version="1.11.60" />
     <PackageReference Include="LLamaSharp" Version="0.11.2" />

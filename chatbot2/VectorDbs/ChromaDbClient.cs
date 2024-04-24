@@ -1,19 +1,20 @@
 ﻿using ChromaDBSharp.Client;
 using System.Text;
 
-namespace chatbot2;
+namespace chatbot2.VectorDbs;
 
-public class VectorDbClient : IDisposable
+public class ChromaDbClient : IVectorDb, IDisposable
 {
     private readonly ChromaDBClient client;
     private readonly HttpClient httpClient;
     private ICollectionClient? collectionClient;
-    private readonly Embedding embedding = new();
+    private readonly IEmbedding embedding;
     private readonly string collectionName;
     private readonly float minimumScore = 0.8f;
 
-    public VectorDbClient()
+    public ChromaDbClient(IEnumerable<IEmbedding> embeddings)
     {
+        embedding = embeddings.GetSelectedEmbedding();
         collectionName = Environment.GetEnvironmentVariable("CollectionName") ?? throw new Exception("Missing CollectionName");
         httpClient = new()
         {
@@ -113,7 +114,7 @@ public class VectorDbClient : IDisposable
         {
             foreach (var chunckText in chunckTextList)
             {
-                docs[counter].DocumentText = chunckText;
+                docs[counter].Text = chunckText;
                 counter++;
             }
         }
@@ -128,7 +129,7 @@ public class IndexedDocument
     public float? Score { get; set; }
     public IDictionary<string, string>? MetaDatas { get; set; }
 
-    public string? DocumentText { get; set; }
+    public string? Text { get; set; }
 
     public override string ToString()
     {
@@ -145,9 +146,9 @@ public class IndexedDocument
             }
         }
 
-        if (DocumentText is not null)
+        if (Text is not null)
         {
-            sb.AppendLine($"DocumentText: {DocumentText}");
+            sb.AppendLine($"DocumentText: {Text}");
         }
 
         return sb.ToString();

@@ -1,35 +1,46 @@
-﻿// See https://aka.ms/new-console-template for more information
-// C:\Users\seekd\.cache\lm-studio\models\easynet\microsoft-phi-2-GGUF\phi-2.Q6_K.gguf
-using LLama.Common;
-using LLama;
-using chatbot2;
+﻿using chatbot2;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using chatbot2.Embeddings;
+using chatbot2.VectorDbs;
+using chatbot2.Llms;
+using System.Text.Json;
+using System.Text;
 
-// generate code for dependency injection
-IConfiguration config = new ConfigurationBuilder()
+IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
        .Build();
 
-using var vectorDb = new VectorDbClient();
+var services = new ServiceCollection();
+services.AddSingleton<IEmbedding, AzureOpenAIEmbedding>();
+services.AddSingleton<IEmbedding, LocalEmbedding>();
+services.AddSingleton<IVectorDb, AzureAISearch>();
+services.AddSingleton<IVectorDb, ChromaDbClient>();
+services.AddSingleton<ILanguageModel, LocalLLM>();
+services.AddSingleton<ILanguageModel, AzureOpenAIClient>();
+services.AddSingleton<ILanguageModel, LocalLLM>();
+
+var provider = services.BuildServiceProvider();
+var vectorDb = provider.GetServices<IVectorDb>().GetSelectedVectorDb();
 await vectorDb.InitAsync();
 
-var searchText = config["search"];
-if (searchText is not null)
-{
-    var results = await vectorDb.SearchAsync(searchText);
-    if (!results.Any())
-    {
-        Console.WriteLine("no results found");
-        return;
-    }
-    foreach (var result in results)
-    {
-        Console.WriteLine(result);
-    }
-    return;
-}
+//var searchText = argsConfig["search"];
+//if (searchText is not null)
+//{
+//    var results = await vectorDb.SearchAsync(searchText);
+//    if (!results.Any())
+//    {
+//        Console.WriteLine("no results found");
+//        return;
+//    }
+//    foreach (var result in results)
+//    {
+//        Console.WriteLine(result);
+//    }
+//    return;
+//}
 
-var deleteSearch = config["delete-search"];
+var deleteSearch = argsConfig["delete-search"];
 if (deleteSearch == "true")
 {
     await vectorDb.DeleteAsync();
@@ -39,7 +50,7 @@ if (deleteSearch == "true")
     return;
 }
 
-var ingestData = config["ingest-data"];
+var ingestData = argsConfig["ingest"];
 if (ingestData == "true")
 {
     var dataSourcePath = Environment.GetEnvironmentVariable("DataSourcePath") ?? throw new Exception("Missing DataSourcePath!");
@@ -60,52 +71,64 @@ if (ingestData == "true")
     return;
 }
 
-////var result = await Embedding.GetEmbeddingsAsync("Hello, world!");
+while (true)
+{
+    Console.Write("Ask a question.\nUser: ");
+    string userInput = Console.ReadLine() ?? "";
 
-//string modelPath = Environment.GetEnvironmentVariable("ModelFilePath") ?? throw new Exception("Missing ModelFilePath!"); // change it to your own model path.
+    if (userInput == "exit")
+    {
+        break;
+    }
 
-//var parameters = new ModelParams(modelPath)
-//{
-//    ContextSize = 1024, // The longest length of chat as memory.
-//    GpuLayerCount = 5 // How many layers to offload to GPU. Please adjust it according to your GPU memory.
-//};
-//using var model = LLamaWeights.LoadFromFile(parameters);
-//using var context = model.CreateContext(parameters);
-//var executor = new InteractiveExecutor(context);
+    var intentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
+    intentPrompt = intentPrompt.Replace("{{$previous_intent}}", "");
+    intentPrompt = intentPrompt.Replace("{{$query}}", userInput);
 
-//// Add chat histories as prompt to tell AI how to act.
-//var chatHistory = new ChatHistory();
-//chatHistory.AddMessage(AuthorRole.System, "Transcript of a dialog, where the User interacts with an Assistant named Bob. Bob is helpful, kind, honest, good at writing, and never fails to answer the User's requests immediately and with precision.");
-//chatHistory.AddMessage(AuthorRole.User, "Hello, Bob.");
-//chatHistory.AddMessage(AuthorRole.Assistant, "Hello. How may I help you today?");
+    var llm = provider.GetServices<ILanguageModel>().GetSelectedLanguageModel();
+    var intentResponse = await llm.GetChatCompletionsAsync(intentPrompt);
 
-//ChatSession session = new(executor, chatHistory);
+    if (intentResponse is null)
+    {
+        throw new Exception("did not get response from llm");
+    }
 
-//InferenceParams inferenceParams = new()
-//{
-//    MaxTokens = 256, // No more than 256 tokens should appear in answer. Remove it if antiprompt is enough for control.
-//    AntiPrompts = new List<string> { "User:" }, // Stop generation once antiprompts appear.
-//    Temperature = 0,
-//    TopK = 10,
-//    TopP = 0.1F
-//};
+    const string keywordMarker = "Single intents:";
+    var findIndex = intentResponse.IndexOf(keywordMarker, StringComparison.OrdinalIgnoreCase);
+    if (findIndex < 0)
+    {
+        throw new Exception("did not find single intent in response");
+    }
+    intentResponse = intentResponse.Substring(findIndex + keywordMarker.Length);
+    var lastIndex = intentResponse.IndexOf("]", findIndex, StringComparison.OrdinalIgnoreCase);
+    intentResponse = intentResponse.Substring(0, lastIndex + 1);
+    var parsedIntents = JsonSerializer.Deserialize<string[]>(intentResponse);
+    if (parsedIntents is null)
+    {
+        throw new Exception("response did not deserialize properly");
+    }
 
-//Console.ForegroundColor = ConsoleColor.Yellow;
-//Console.Write("The chat session has started.\nUser: ");
-//Console.ForegroundColor = ConsoleColor.Green;
-//string userInput = Console.ReadLine() ?? "";
+    var intent = parsedIntents.Single();
 
-//while (userInput != "exit")
-//{
-//    await foreach ( // Generate the response streamingly.
-//        var text
-//        in session.ChatAsync(
-//            new ChatHistory.Message(AuthorRole.User, userInput),
-//            inferenceParams))
-//    {
-//        Console.ForegroundColor = ConsoleColor.White;
-//        Console.Write(text);
-//    }
-//    Console.ForegroundColor = ConsoleColor.Green;
-//    userInput = Console.ReadLine() ?? "";
-//}
+    var results = (await vectorDb.SearchAsync(intent)).ToArray();
+    var replyPrompt = await Util.GetResourceAsync("DetermineReply.txt");
+    replyPrompt = replyPrompt.Replace("{{$conversation}}", "");
+    StringBuilder sb = new();
+    for (var i = 0; i < results.Length; i++)
+    {
+        var result = results[i];
+        sb.AppendLine($"doc[{i}]\n{result.Text}\n");
+    }
+    replyPrompt = replyPrompt.Replace("{{$documentation}}", sb.ToString());
+    replyPrompt = replyPrompt.Replace("{{$user_query}}", intent);
+
+    var replyResponse = await llm.GetChatCompletionsAsync(replyPrompt);
+
+    if (replyResponse is null)
+    {
+        throw new Exception("did not get response from llm");
+    }
+
+    Console.WriteLine(replyResponse);
+}
+

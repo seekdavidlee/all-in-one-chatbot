@@ -1,12 +1,12 @@
 ﻿using LLama.Common;
 using LLama;
 
-namespace chatbot2;
+namespace chatbot2.Embeddings;
 
-public class Embedding
+public class LocalEmbedding : IEmbedding
 {
     private readonly LLamaEmbedder embedder;
-    public Embedding()
+    public LocalEmbedding()
     {
         string modelPath = Environment.GetEnvironmentVariable("EmbeddingFilePath") ?? throw new Exception("Missing EmbeddingFilePath!"); // change it to your own model path.
         var @params = new ModelParams(modelPath) { EmbeddingMode = true };
