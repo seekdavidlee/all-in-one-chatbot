@@ -91,7 +91,7 @@ while (true)
         throw new Exception("did not find single intent in response");
     }
     intentResponse = intentResponse.Substring(findIndex + keywordMarker.Length);
-    var lastIndex = intentResponse.IndexOf("]", findIndex, StringComparison.OrdinalIgnoreCase);
+    var lastIndex = intentResponse.IndexOf("]", 0, StringComparison.OrdinalIgnoreCase);
     intentResponse = intentResponse.Substring(0, lastIndex + 1);
     var parsedIntents = JsonSerializer.Deserialize<string[]>(intentResponse);
     if (parsedIntents is null)
@@ -99,7 +99,7 @@ while (true)
         throw new Exception("response did not deserialize properly");
     }
 
-    var intent = parsedIntents.Single();
+    var intent = parsedIntents.Length > 0 ? parsedIntents.Single() : userInput;
 
     var results = (await vectorDb.SearchAsync(intent)).ToArray();
     var replyPrompt = await Util.GetResourceAsync("DetermineReply.txt");
