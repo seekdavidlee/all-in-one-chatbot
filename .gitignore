@@ -4,3 +4,5 @@
 bin
 obj
 launchsettings.json
+*.gguf
+Mappings/*.json
