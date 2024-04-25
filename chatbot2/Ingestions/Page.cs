@@ -1,7 +1,6 @@
 ﻿using HtmlAgilityPack;
-using System.Reflection.PortableExecutable;
 
-namespace chatbot2;
+namespace chatbot2.Ingestions;
 
 public class Page
 {

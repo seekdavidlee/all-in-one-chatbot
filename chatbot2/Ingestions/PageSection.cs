@@ -1,7 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System.Text;
 
-namespace chatbot2;
+namespace chatbot2.Ingestions;
 public class PageSection
 {
     private readonly HtmlNode node;
@@ -26,7 +26,7 @@ public class PageSection
 
     public void Process()
     {
-        var currrent = this.node;
+        var currrent = node;
         StringBuilder sb = new();
         if (reference is not null)
         {
