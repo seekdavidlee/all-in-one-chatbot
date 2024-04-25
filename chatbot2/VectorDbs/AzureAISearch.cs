@@ -50,25 +50,10 @@ public class AzureAISearch : IVectorDb
         await searchIndexClient.CreateOrUpdateIndexAsync(searchIndex);
     }
 
-    public async Task ProcessAsync(PageSection pageSection)
+    public Task ProcessAsync(IEnumerable<SearchModel> models)
     {
-        List<SearchModel> models = new();
-        foreach (var t in pageSection.TextChunks)
-        {
-            var m = new SearchModel
-            {
-                Id = Guid.NewGuid().ToString(),
-                Content = t.Text,
-                MetaData = JsonSerializer.Serialize(t.MetaDatas),
-                Filepath = t.Id,
-                ContentVector = await embedding.GetEmbeddingsAsync(t.Text ?? throw new Exception("Text cannot be null!")),
-            };
-
-            models.Add(m);
-        }
-
         var batch = IndexDocumentsBatch.Upload(models);
-        await searchClient.IndexDocumentsAsync(batch);
+        return searchClient.IndexDocumentsAsync(batch);
     }
 
     public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText)

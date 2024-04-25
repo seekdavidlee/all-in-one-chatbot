@@ -45,26 +45,26 @@ public class ChromaDbClient : IVectorDb, IDisposable
             await client.CreateCollectionAsync(collectionName);
     }
 
-    public async Task ProcessAsync(PageSection pageSection)
+    public async Task ProcessAsync(IEnumerable<SearchModel> searchModels)
     {
         if (collectionClient is null)
         {
             throw new Exception("CollectionClient is not initialized!");
         }
 
-        foreach (var textChunk in pageSection.TextChunks)
+        foreach (var model in searchModels)
         {
-            if (textChunk.Text is null)
+            if (model.Id is null ||
+                model.ContentVector is null || 
+                model.Content is null)
             {
                 continue;
             }
 
-            var embeddings = await embedding.GetEmbeddingsAsync(textChunk.Text);
             await collectionClient.AddAsync(
-                ids: [textChunk.Id],
-                embeddings: [embeddings],
-                metadatas: [textChunk.MetaDatas],
-                documents: [textChunk.Text]);
+                ids: [model.Id],
+                embeddings: [model.ContentVector],
+                documents: [model.Content]);
         }
     }
 

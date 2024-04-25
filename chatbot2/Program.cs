@@ -6,12 +6,22 @@ using chatbot2.VectorDbs;
 using chatbot2.Llms;
 using System.Text.Json;
 using System.Text;
+using chatbot2.Ingestions;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks.Dataflow;
 
 IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
        .Build();
 
 var services = new ServiceCollection();
+services.AddHttpClient();
+services.AddLogging(c =>
+{
+    var level = Environment.GetEnvironmentVariable("LogLevel") ?? "Information";
+    c.SetMinimumLevel((LogLevel)Enum.Parse(typeof(LogLevel), level));
+    c.AddConsole();
+});
 services.AddSingleton<IEmbedding, AzureOpenAIEmbedding>();
 services.AddSingleton<IEmbedding, LocalEmbedding>();
 services.AddSingleton<IVectorDb, AzureAISearch>();
@@ -19,6 +29,9 @@ services.AddSingleton<IVectorDb, ChromaDbClient>();
 services.AddSingleton<ILanguageModel, LocalLLM>();
 services.AddSingleton<ILanguageModel, AzureOpenAIClient>();
 services.AddSingleton<ILanguageModel, LocalLLM>();
+services.AddSingleton<IRestClientAuthHeaderProvider, CustomAuthProvider>();
+//services.AddSingleton<IVectorDbIngestion, LocalDirectoryIngestion>();
+services.AddSingleton<IVectorDbIngestion, RestApiIngestion>();
 
 var provider = services.BuildServiceProvider();
 var vectorDb = provider.GetServices<IVectorDb>().GetSelectedVectorDb();
@@ -33,32 +46,23 @@ if (deleteSearch == "true")
     Console.ResetColor();
     return;
 }
-
+int concurrency = int.Parse(Environment.GetEnvironmentVariable("Concurrency") ?? "2");
 var ingestData = argsConfig["ingest"];
 if (ingestData == "true")
 {
-    string[] dataSourcePaths = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths!")).Split(',');
-    var htmlReader = new HtmlReader();
-
-    foreach (var dataSourcePath in dataSourcePaths)
+    var sender = new ActionBlock<Func<Task>>((action) => action(),
+    new ExecutionDataflowBlockOptions
     {
-        Console.WriteLine($"processing data source: {dataSourcePath}...");
-        var result = await htmlReader.ReadFilesAsync(dataSourcePath);
-        foreach (var page in result.Pages)
-        {
-            Console.WriteLine($"processing page: {page.Context.PagePath}...");
-            foreach (var section in page.Sections)
-            {
-                Console.WriteLine($"processing section: {section.IdPrefix}...");
-                Console.WriteLine(section);
-                await vectorDb.ProcessAsync(section);
-            }
-        }
-        foreach (var log in result.Logs)
-        {
-            Console.WriteLine($"log: {log.Text}, source: {log.Source}");
-        }
+        MaxDegreeOfParallelism = concurrency,
+        TaskScheduler = TaskScheduler.Default,
+    });
+
+    foreach (var ingestion in provider.GetServices<IVectorDbIngestion>())
+    {
+        await sender.SendAsync(() => ingestion.RunAsync(vectorDb));
     }
+    sender.Complete();
+    await sender.Completion;
     return;
 }
 

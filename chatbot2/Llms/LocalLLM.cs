@@ -18,7 +18,6 @@ public class LocalLLM : ILanguageModel
         };
         using var model = LLamaWeights.LoadFromFile(parameters);
         context = model.CreateContext(parameters);
-        //executor = new InteractiveExecutor(context);
     }
 
     public async Task<string> GetChatCompletionsAsync(string text)

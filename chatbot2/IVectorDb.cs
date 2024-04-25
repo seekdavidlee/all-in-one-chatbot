@@ -5,7 +5,7 @@ namespace chatbot2;
 public interface IVectorDb
 {
     Task InitAsync();
-    Task ProcessAsync(PageSection pageSection);
+    Task ProcessAsync(IEnumerable<SearchModel> models);
     Task DeleteAsync();
     Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText);
 }
