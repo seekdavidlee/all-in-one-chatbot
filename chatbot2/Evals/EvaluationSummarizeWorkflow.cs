@@ -16,7 +16,7 @@ public class EvaluationSummarizeWorkflow
     public async Task CreateAsync(string path)
     {
         Dictionary<string, MetricSummary> metrics = [];
-        await foreach (var (Item, BlobName) in reportRepository.GetAsync<EvaluationMetricResult>(path))
+        await foreach (var (Item, BlobName) in reportRepository.GetAsync<EvaluationMetricResult>($"{path}/eval-"))
         {
             if (Item.MetricName is null)
             {

@@ -108,7 +108,7 @@ public class EvaluationMetricWorkflow
         return result;
     }
 
-    private string? GetString(string startIndex, string endIndex, string text)
+    private static string? GetString(string startIndex, string endIndex, string text)
     {
         var start = text.IndexOf(startIndex, StringComparison.OrdinalIgnoreCase);
         if (start < 0)

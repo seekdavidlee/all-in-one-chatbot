@@ -25,6 +25,6 @@ public class EvaluationSummarizeCommand : ICommandAction
             return;
         }
 
-        await this.evaluationSummarizeWorkflow.CreateAsync($"{path}/eval-");
+        await this.evaluationSummarizeWorkflow.CreateAsync(path);
     }
 }
