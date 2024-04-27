@@ -74,7 +74,7 @@ public class AzureAISearch : IVectorDb
 
         var results = await searchClient.SearchAsync<SearchModel>(searchOptions);
 
-        List<IndexedDocument> indexedDocuments = new();
+        List<IndexedDocument> indexedDocuments = [];
         await foreach (var result in results.Value.GetResultsAsync())
         {
             if (result.Score is null)

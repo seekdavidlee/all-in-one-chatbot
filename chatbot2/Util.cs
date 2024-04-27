@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using chatbot2.VectorDbs;
+using System.Reflection;
+using System.Text;
 
 namespace chatbot2;
 
@@ -27,5 +29,16 @@ public static class Util
     {
         var languageModelType = Environment.GetEnvironmentVariable("LanguageModelType") ?? throw new Exception("Missing LanguageModelType!");
         return languageModels.Single(x => x.GetType().Name == languageModelType);
+    }
+
+    public static string FullBody(this IndexedDocument[] docs)
+    {
+        StringBuilder sb = new();
+        for (var i = 0; i < docs.Length; i++)
+        {
+            var result = docs[i];
+            sb.AppendLine($"doc[{i}]\n{result.Text}\n");
+        }
+        return sb.ToString();
     }
 }

@@ -20,12 +20,12 @@ public class LocalLLM : ILanguageModel
         context = model.CreateContext(parameters);
     }
 
-    public async Task<string> GetChatCompletionsAsync(string text)
+    public async Task<string> GetChatCompletionsAsync(string text, LlmOptions options)
     {
         InferenceParams inferenceParams = new()
         {
             MaxTokens = 256, // No more than 256 tokens should appear in answer. Remove it if antiprompt is enough for control.
-            AntiPrompts = new List<string> { "User:" }, // Stop generation once antiprompts appear.
+            AntiPrompts = ["User:"], // Stop generation once antiprompts appear.
             Temperature = 0,
             //TopK = 10,
             //TopP = 0.1F,

@@ -10,19 +10,21 @@ public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
         deploymentName = Environment.GetEnvironmentVariable("AzureOpenAILLMDeploymentModel") ?? throw new Exception("Missing AzureOpenAILLMDeploymentModel!");
     }
 
-    public async Task<string> GetChatCompletionsAsync(string text)
+    private const int DefaultMaxTokens = 256;
+
+    public async Task<string> GetChatCompletionsAsync(string text, LlmOptions options)
     {
         ChatRequestUserMessage chatMessage = new(text);
 
-        var options = new ChatCompletionsOptions
+        var chatCompletionsOptions = new ChatCompletionsOptions
         {
-            DeploymentName = deploymentName,
-            MaxTokens = 256,
-            Temperature = 0,
+            DeploymentName = options.DeploymentName ?? deploymentName,
+            MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
+            Temperature = options.Temperature ?? 0,
         };
-        options.Messages.Add(chatMessage);
+        chatCompletionsOptions.Messages.Add(chatMessage);
 
-        var response = await Client.GetChatCompletionsAsync(options);
+        var response = await Client.GetChatCompletionsAsync(chatCompletionsOptions);
 
         return response.Value.Choices[0].Message.Content;
     }

@@ -7,6 +7,8 @@ using chatbot2.Llms;
 using chatbot2.Ingestions;
 using Microsoft.Extensions.Logging;
 using chatbot2.Commands;
+using chatbot2.Evals;
+using chatbot2.Inferences;
 
 IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
@@ -20,26 +22,43 @@ services.AddLogging(c =>
     c.SetMinimumLevel((LogLevel)Enum.Parse(typeof(LogLevel), level));
     c.AddConsole();
 });
+
+//services.AddSingleton<IEmbedding, LocalEmbedding>();
+//services.AddSingleton<IVectorDb, ChromaDbClient>();
+//services.AddSingleton<ILanguageModel, LocalLLM>();
 services.AddSingleton<IEmbedding, AzureOpenAIEmbedding>();
-services.AddSingleton<IEmbedding, LocalEmbedding>();
 services.AddSingleton<IVectorDb, AzureAISearch>();
-services.AddSingleton<IVectorDb, ChromaDbClient>();
-services.AddSingleton<ILanguageModel, LocalLLM>();
 services.AddSingleton<ILanguageModel, AzureOpenAIClient>();
-services.AddSingleton<ILanguageModel, LocalLLM>();
 services.AddSingleton<IRestClientAuthHeaderProvider, CustomAuthProvider>();
-//services.AddSingleton<IVectorDbIngestion, LocalDirectoryIngestion>();
+services.AddSingleton<IVectorDbIngestion, LocalDirectoryIngestion>();
 services.AddSingleton<IVectorDbIngestion, RestApiIngestion>();
 services.AddSingleton<ICommandAction, ConsoleInferenceCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();
+services.AddSingleton<ICommandAction, EvaluationCommand>();
+services.AddSingleton<GroundTruthIngestion>();
+services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
+services.AddSingleton<InferenceWorkflow>();
+services.AddSingleton<EvaluationMetricWorkflow>();
+services.AddSingleton<FileCache>();
+services.AddSingleton<ReportRepository>();
 
 var provider = services.BuildServiceProvider();
 foreach (var command in provider.GetServices<ICommandAction>())
 {
     if (command.Name == argsConfig["command"])
     {
-        await command.ExecuteAsync(argsConfig);
+        try
+        {
+            await command.ExecuteAsync(argsConfig);
+        }
+        catch (Exception ex)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(ex.Message);
+            Console.ResetColor();
+        }
+
         return;
     }
 }
