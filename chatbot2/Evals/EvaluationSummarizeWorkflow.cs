@@ -16,25 +16,25 @@ public class EvaluationSummarizeWorkflow
     public async Task CreateAsync(string path)
     {
         Dictionary<string, MetricSummary> metrics = [];
-        await foreach (var result in reportRepository.GetAsync<EvaluationMetricResult>(path))
+        await foreach (var (Item, BlobName) in reportRepository.GetAsync<EvaluationMetricResult>(path))
         {
-            if (result.MetricName is null)
+            if (Item.MetricName is null)
             {
-                logger.LogWarning("MetricName is missing");
+                logger.LogWarning("MetricName is missing for {blobName}", BlobName);
                 continue;
             }
 
-            if (result.Results is null)
+            if (Item.Results is null)
             {
-                logger.LogWarning("Results is missing");
+                logger.LogWarning("Results is missing for {blobName}", BlobName);
                 continue;
             }
 
-            if (!metrics.TryGetValue(result.MetricName, out var metricSummary))
+            if (!metrics.TryGetValue(Item.MetricName, out var metricSummary))
             {
                 metricSummary = new MetricSummary
                 {
-                    Name = result.MetricName,
+                    Name = Item.MetricName,
                     TotalDurationInMilliseconds = 0,
                     TotalRuns = 0,
                     TotalScore = 0,
@@ -42,11 +42,11 @@ public class EvaluationSummarizeWorkflow
                 };
             }
 
-            foreach (var item in result.Results)
+            foreach (var item in Item.Results)
             {
                 if (item.Score is null)
                 {
-                    logger.LogWarning("Score is missing for {MetricName}", result.MetricName);
+                    logger.LogWarning("Score is missing for {MetricName}, blob: {blobName}", Item.MetricName, BlobName);
                     metricSummary.TotalFailedRuns += 1;
                 }
                 else
@@ -58,12 +58,12 @@ public class EvaluationSummarizeWorkflow
                 metricSummary.TotalRuns += 1;
             }
 
-            metrics[result.MetricName] = metricSummary;
+            metrics[Item.MetricName] = metricSummary;
         }
 
         foreach (var key in metrics.Keys)
         {
-            var name = $"{path}/{key}.json";
+            var name = $"{path}/summary-{key}.json";
             logger.LogInformation("Saving {metricFilePath}", name);
             await reportRepository.SaveAsync(name, metrics[key]);
         }

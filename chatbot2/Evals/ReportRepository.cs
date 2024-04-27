@@ -30,7 +30,7 @@ public class ReportRepository
         return blob.UploadAsync(stream, overwrite: true);
     }
 
-    public async IAsyncEnumerable<T> GetAsync<T>(string path)
+    public async IAsyncEnumerable<(T Item, string BlobName)> GetAsync<T>(string path)
     {
         await foreach (var b in client.GetBlobsAsync(prefix: path))
         {
@@ -39,7 +39,7 @@ public class ReportRepository
             var item = await JsonSerializer.DeserializeAsync<T>(content.Value.Content.ToStream());
             if (item is not null)
             {
-                yield return item;
+                yield return (item, b.Name);
             }
         }
     }
