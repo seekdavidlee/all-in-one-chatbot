@@ -36,12 +36,14 @@ services.AddSingleton<ICommandAction, ConsoleInferenceCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();
 services.AddSingleton<ICommandAction, EvaluationCommand>();
+services.AddSingleton<ICommandAction, EvaluationSummarizeCommand>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
 services.AddSingleton<InferenceWorkflow>();
 services.AddSingleton<EvaluationMetricWorkflow>();
 services.AddSingleton<FileCache>();
 services.AddSingleton<ReportRepository>();
+services.AddSingleton<EvaluationSummarizeWorkflow>();
 
 var provider = services.BuildServiceProvider();
 foreach (var command in provider.GetServices<ICommandAction>())

@@ -27,6 +27,20 @@ public class ReportRepository
     public Task UploadAsync(string name, Stream stream)
     {
         var blob = client.GetBlobClient(name);
-        return blob.UploadAsync(stream);
+        return blob.UploadAsync(stream, overwrite: true);
+    }
+
+    public async IAsyncEnumerable<T> GetAsync<T>(string path)
+    {
+        await foreach (var b in client.GetBlobsAsync(prefix: path))
+        {
+            var client = this.client.GetBlobClient(b.Name);
+            var content = await client.DownloadContentAsync();
+            var item = await JsonSerializer.DeserializeAsync<T>(content.Value.Content.ToStream());
+            if (item is not null)
+            {
+                yield return item;
+            }
+        }
     }
 }
