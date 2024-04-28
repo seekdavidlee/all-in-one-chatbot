@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using chatbot2.Commands;
 using chatbot2.Evals;
 using chatbot2.Inferences;
+using System.Diagnostics;
 
 IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
@@ -50,6 +51,8 @@ foreach (var command in provider.GetServices<ICommandAction>())
 {
     if (command.Name == argsConfig["command"])
     {
+        var sw = new Stopwatch();
+        sw.Start();
         try
         {
             await command.ExecuteAsync(argsConfig);
@@ -60,7 +63,12 @@ foreach (var command in provider.GetServices<ICommandAction>())
             Console.WriteLine(ex.Message);
             Console.ResetColor();
         }
+        finally
+        {
+            sw.Stop();
+        }
 
+        Console.WriteLine($"Operation '{command.Name}' completed in {sw.ElapsedMilliseconds}ms");
         return;
     }
 }

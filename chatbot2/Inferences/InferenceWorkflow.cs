@@ -19,14 +19,23 @@ public class InferenceWorkflow
         this.logger = logger;
     }
 
+    private SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
     private bool isVectorDbInitialized;
     public async Task<InferenceOutput> ExecuteAsync(string userInput)
     {
-        if (!isVectorDbInitialized)
+        await semaphore.WaitAsync();
+        try
         {
-            await vectorDb.InitAsync();
-            isVectorDbInitialized = true;
-            logger.LogInformation("VectorDb initialized");
+            if (!isVectorDbInitialized)
+            {
+                await vectorDb.InitAsync();
+                isVectorDbInitialized = true;
+                logger.LogInformation("VectorDb initialized");
+            }
+        }
+        finally
+        {
+            semaphore.Release();
         }
 
         var intentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");

@@ -46,13 +46,6 @@ public class EvaluationCommand : ICommandAction
             return;
         }
 
-        var configOutPath = argsConfiguration["config-outpath"];
-        if (configOutPath is null)
-        {
-            logger.LogWarning("config-outpath argument is missing");
-            return;
-        }
-
         var config = JsonSerializer.Deserialize<EvaluationConfig>(File.ReadAllText(configFilePath));
 
         if (config is null)
