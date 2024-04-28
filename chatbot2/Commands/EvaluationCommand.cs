@@ -108,7 +108,7 @@ public class EvaluationCommand : ICommandAction
                     {
                         try
                         {
-                            logger.LogDebug("running inference for {question}, run: {count}", groundTruth.Question, i);
+                            logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, i);
                             var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question);
                             if (answer is null)
                             {
@@ -129,7 +129,7 @@ public class EvaluationCommand : ICommandAction
                         }
                         catch (Exception e)
                         {
-                            logger.LogError(e, "error running inference for {question}, run: {count}", groundTruth.Question, i);
+                            logger.LogError(e, "error running inference for '{question}', run: {count}", groundTruth.Question, i);
                         }
                     });
                 }

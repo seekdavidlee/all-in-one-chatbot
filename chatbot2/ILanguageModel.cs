@@ -4,5 +4,5 @@ namespace chatbot2;
 
 public interface ILanguageModel
 {
-    Task<string> GetChatCompletionsAsync(string text, LlmOptions options);
+    Task<ChatCompletionResponse> GetChatCompletionsAsync(string text, LlmOptions options);
 }

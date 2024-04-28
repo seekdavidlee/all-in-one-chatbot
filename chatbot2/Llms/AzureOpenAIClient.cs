@@ -12,7 +12,7 @@ public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
 
     private const int DefaultMaxTokens = 256;
 
-    public async Task<string> GetChatCompletionsAsync(string text, LlmOptions options)
+    public async Task<ChatCompletionResponse> GetChatCompletionsAsync(string text, LlmOptions options)
     {
         ChatRequestUserMessage chatMessage = new(text);
 
@@ -26,7 +26,11 @@ public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
 
         var response = await Client.GetChatCompletionsAsync(chatCompletionsOptions);
 
-        return response.Value.Choices[0].Message.Content;
+        return new ChatCompletionResponse(response.Value.Choices[0].Message.Content)
+        {
+            PromptTokens = response.Value.Usage.PromptTokens,
+            CompletionTokens = response.Value.Usage.CompletionTokens,
+        };
     }
 }
 

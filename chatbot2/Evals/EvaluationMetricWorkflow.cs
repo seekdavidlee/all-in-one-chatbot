@@ -66,8 +66,12 @@ public class EvaluationMetricWorkflow
                     MaxTokens = config.MaxTokens,
                     Temperature = config.Temperature,
                 });
-                metricResult.RawResponse = llmResult;
+                metricResult.RawResponse = llmResult.Text;
                 metricResult.Success = true;
+                metricResult.CompletionTokens = llmResult.CompletionTokens;
+                metricResult.PromptTokens = llmResult.PromptTokens;
+                metricResult.InferencePromptTokens = output.PromptTokens;
+                metricResult.InferenceCompletionTokens = output.CompletionTokens;
             }
             catch (Exception ex)
             {

@@ -10,4 +10,8 @@ public class EvaluationMetricRunResult
     public string? RawPrompt { get; set; }
     public bool? Success { get; set; }
     public string? ErrorMessage { get; set; }
+    public int? CompletionTokens { get; set; }
+    public int? PromptTokens { get; set; }
+    public int? InferenceCompletionTokens { get; set; }
+    public int? InferencePromptTokens { get; set; }
 }

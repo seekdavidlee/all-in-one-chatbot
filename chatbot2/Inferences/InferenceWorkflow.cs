@@ -42,8 +42,9 @@ public class InferenceWorkflow
         intentPrompt = intentPrompt.Replace("{{$previous_intent}}", "");
         intentPrompt = intentPrompt.Replace("{{$query}}", userInput);
 
-        var intentResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
+        var chatCompletionResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
 
+        var intentResponse = chatCompletionResponse.Text;
         if (intentResponse is null)
         {
             throw new Exception("did not get response from llm");
@@ -55,9 +56,9 @@ public class InferenceWorkflow
         {
             throw new Exception("did not find single intent in response");
         }
-        intentResponse = intentResponse.Substring(findIndex + keywordMarker.Length);
+        intentResponse = intentResponse[(findIndex + keywordMarker.Length)..];
         var lastIndex = intentResponse.IndexOf("]", 0, StringComparison.OrdinalIgnoreCase);
-        intentResponse = intentResponse.Substring(0, lastIndex + 1);
+        intentResponse = intentResponse[..(lastIndex + 1)];
         var parsedIntents = JsonSerializer.Deserialize<string[]>(intentResponse);
         if (parsedIntents is null)
         {
@@ -68,7 +69,6 @@ public class InferenceWorkflow
         {
             parsedIntents = [userInput];
         }
-
 
         List<IndexedDocument> results = [];
         foreach (var intent in parsedIntents)
@@ -93,9 +93,11 @@ public class InferenceWorkflow
 
         return new InferenceOutput
         {
-            Text = replyResponse,
+            Text = replyResponse.Text,
             DurationInMilliseconds = stopwatch.ElapsedMilliseconds,
-            Documents = resultsArr
+            Documents = resultsArr,
+            CompletionTokens = replyResponse.CompletionTokens,
+            PromptTokens = replyResponse.PromptTokens,
         };
     }
 }

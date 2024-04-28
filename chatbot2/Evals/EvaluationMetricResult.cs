@@ -6,4 +6,6 @@ public class EvaluationMetricResult
     public GroundTruth? GroundTruth { get; set; }
     public EvaluationMetricRunResult[]? Results { get; set; }
     public double? DurationInMilliseconds { get; set; }
+    public int? GroundTruthCompletionTokens { get; set; }
+    public int? GroundTruthPromptTokens { get; set; }
 }
