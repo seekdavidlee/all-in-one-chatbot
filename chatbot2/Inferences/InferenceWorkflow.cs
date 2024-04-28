@@ -19,9 +19,9 @@ public class InferenceWorkflow
         this.logger = logger;
     }
 
-    private SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+    private readonly SemaphoreSlim semaphore = new(1, 1);
     private bool isVectorDbInitialized;
-    public async Task<InferenceOutput> ExecuteAsync(string userInput)
+    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory = null)
     {
         await semaphore.WaitAsync();
         try
@@ -37,7 +37,7 @@ public class InferenceWorkflow
         {
             semaphore.Release();
         }
-
+        Stopwatch stopwatch = new();
         var intentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
         intentPrompt = intentPrompt.Replace("{{$previous_intent}}", "");
         intentPrompt = intentPrompt.Replace("{{$query}}", userInput);
@@ -79,11 +79,11 @@ public class InferenceWorkflow
 
         var resultsArr = results.ToArray();
         var replyPrompt = await Util.GetResourceAsync("DetermineReply.txt");
-        replyPrompt = replyPrompt.Replace("{{$conversation}}", "");
+        replyPrompt = replyPrompt.Replace("{{$conversation}}", chatHistory is not null ? chatHistory.FullBody() : "");
         replyPrompt = replyPrompt.Replace("{{$documentation}}", resultsArr.FullBody());
         replyPrompt = replyPrompt.Replace("{{$user_query}}", userInput);
 
-        Stopwatch stopwatch = new();
+        
         var replyResponse = await languageModel.GetChatCompletionsAsync(replyPrompt, new LlmOptions());
         stopwatch.Stop();
         if (replyResponse is null)
