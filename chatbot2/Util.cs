@@ -42,7 +42,7 @@ public static class Util
         }
         return sb.ToString();
     }
-    public static ExecutionDataflowBlockOptions GetDataflowOptions(int? overrideConcurrency = null)
+    public static ExecutionDataflowBlockOptions GetDataflowOptions(CancellationToken cancellationToken, int? overrideConcurrency = null)
     {
         int concurrency = overrideConcurrency ?? 1;
         if (overrideConcurrency is null)
@@ -58,6 +58,7 @@ public static class Util
         {
             MaxDegreeOfParallelism = concurrency,
             TaskScheduler = TaskScheduler.Default,
+            CancellationToken = cancellationToken
         }; ;
     }
 }

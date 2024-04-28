@@ -5,5 +5,5 @@ namespace chatbot2;
 public interface ICommandAction
 {
     string Name { get; }
-    Task ExecuteAsync(IConfiguration argsConfiguration);
+    Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken);
 }

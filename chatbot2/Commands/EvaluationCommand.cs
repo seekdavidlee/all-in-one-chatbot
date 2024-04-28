@@ -31,7 +31,7 @@ public class EvaluationCommand : ICommandAction
 
     public string Name => "evals";
 
-    public async Task ExecuteAsync(IConfiguration argsConfiguration)
+    public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
         var configFilePath = argsConfiguration["config-filepath"];
         if (configFilePath is null)
@@ -79,7 +79,7 @@ public class EvaluationCommand : ICommandAction
 
         logger.LogInformation("starting evaluation runs: {path}", path);
 
-        var blocks = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions());
+        var blocks = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(cancellationToken));
 
         foreach (var group in groups)
         {
@@ -92,12 +92,19 @@ public class EvaluationCommand : ICommandAction
 
                 for (var i = 0; i < config.RunCount; i++)
                 {
+                    var index = i;
                     await blocks.SendAsync(async () =>
                     {
+                        if (cancellationToken.IsCancellationRequested)
+                        {
+                            logger.LogDebug("cancelled inference for '{question}', run: {count}", groundTruth.Question, index);
+                            return;
+                        }
+
                         try
                         {
-                            logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, i);
-                            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question);
+                            logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, index);
+                            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, cancellationToken);
                             if (answer is null)
                             {
                                 return;
@@ -117,7 +124,7 @@ public class EvaluationCommand : ICommandAction
                         }
                         catch (Exception e)
                         {
-                            logger.LogError(e, "error running inference for '{question}', run: {count}", groundTruth.Question, i);
+                            logger.LogError(e, "error running inference for '{question}', run: {count}", groundTruth.Question, index);
                         }
                     });
                 }

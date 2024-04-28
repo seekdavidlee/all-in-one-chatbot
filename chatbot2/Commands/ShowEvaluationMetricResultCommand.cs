@@ -16,7 +16,7 @@ public class ShowEvaluationMetricResultCommand : ICommandAction
     }
     public string Name => "show-metric-eval";
 
-    public async Task ExecuteAsync(IConfiguration argsConfiguration)
+    public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
         var path = argsConfiguration["blob-path"];
         if (path is null)

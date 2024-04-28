@@ -11,7 +11,7 @@ public class DeleteSearchCommand : ICommandAction
     }
     public string Name => "delete-search";
 
-    public async Task ExecuteAsync(IConfiguration argsConfiguration)
+    public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
         await vectorDb.DeleteAsync();
         Console.ForegroundColor = ConsoleColor.Green;

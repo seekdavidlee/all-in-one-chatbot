@@ -9,10 +9,11 @@ public class RestApiIngestion : IVectorDbIngestion
     private readonly RestClientConfig config;
     private readonly IRestClientAuthHeaderProvider restClientAuthHeaderProvider;
     private readonly HttpClient httpClient;
+    private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<RestApiIngestion> logger;
 
     private readonly int BatchSize = 30;
-    public RestApiIngestion(IEnumerable<IEmbedding> embeddings, IRestClientAuthHeaderProvider restClientAuthHeaderProvider, HttpClient httpClient, ILogger<RestApiIngestion> logger)
+    public RestApiIngestion(IRestClientAuthHeaderProvider restClientAuthHeaderProvider, HttpClient httpClient, IngestionReporter ingestionReporter, ILogger<RestApiIngestion> logger)
     {
         var config = JsonSerializer.Deserialize<RestClientConfig>(
             File.ReadAllText(Environment.GetEnvironmentVariable("RestClientConfigFilePath") ?? throw new Exception("Missing RestClientConfigFilePath")));
@@ -34,11 +35,12 @@ public class RestApiIngestion : IVectorDbIngestion
         this.config = config;
         this.restClientAuthHeaderProvider = restClientAuthHeaderProvider;
         this.httpClient = httpClient;
+        this.ingestionReporter = ingestionReporter;
         this.logger = logger;
         this.httpClient.BaseAddress = new Uri(config.BaseUrl ?? throw new Exception("config url is invalid"));
     }
 
-    public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding)
+    public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
     {
         if (config.Mappings is null)
         {
@@ -122,28 +124,29 @@ public class RestApiIngestion : IVectorDbIngestion
 
                     if (searchModels.Count >= BatchSize)
                     {
-                        await ProcessBatchAsync(vectorDb, embedding, searchModels);
+                        await ProcessBatchAsync(vectorDb, embedding, searchModels, cancellationToken);
                     }
                 }
 
                 if (searchModels.Count > 0)
                 {
-                    await ProcessBatchAsync(vectorDb, embedding, searchModels);
+                    await ProcessBatchAsync(vectorDb, embedding, searchModels, cancellationToken);
                 }
             }
         }
     }
 
-    private async Task ProcessBatchAsync(IVectorDb vectorDb, IEmbedding embedding, List<(SearchModel Model, string VectorContent)> searchModels)
+    private async Task ProcessBatchAsync(IVectorDb vectorDb, IEmbedding embedding, List<(SearchModel Model, string VectorContent)> searchModels, CancellationToken cancellationToken)
     {
         logger.LogInformation("Uploading batch of {0} records", searchModels.Count);
-
-        var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(x => x.VectorContent).ToArray());
+        this.ingestionReporter.IncrementSearchModelsProcessing(searchModels.Count);
+        var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(x => x.VectorContent).ToArray(), cancellationToken);
         for (var i = 0; i < floatsList.Count; i++)
         {
             searchModels[i].Model.ContentVector = floatsList[i];
         }
         await vectorDb.ProcessAsync(searchModels.Select(x => x.Model));
+        this.ingestionReporter.IncrementSearchModelsProcessed(searchModels.Count);
         searchModels.Clear();
     }
 

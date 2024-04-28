@@ -16,7 +16,7 @@ public class EvaluationSummarizeCommand : ICommandAction
     }
     public string Name => "summarize";
 
-    public async Task ExecuteAsync(IConfiguration argsConfiguration)
+    public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
         var path = argsConfiguration["blob-path"];
         if (path is null)

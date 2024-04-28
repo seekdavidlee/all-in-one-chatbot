@@ -21,7 +21,7 @@ public class InferenceWorkflow
 
     private readonly SemaphoreSlim semaphore = new(1, 1);
     private bool isVectorDbInitialized;
-    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory = null)
+    public async Task<InferenceOutput> ExecuteAsync(string userInput, CancellationToken cancellationToken, ChatHistory? chatHistory = null)
     {
         await semaphore.WaitAsync();
         try
@@ -74,7 +74,7 @@ public class InferenceWorkflow
         List<IndexedDocument> results = [];
         foreach (var intent in parsedIntents)
         {
-            var docResults = (await vectorDb.SearchAsync(intent)).ToArray();
+            var docResults = (await vectorDb.SearchAsync(intent, cancellationToken)).ToArray();
             results.AddRange(docResults);
         }
 

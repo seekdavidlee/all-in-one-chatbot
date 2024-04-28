@@ -33,7 +33,7 @@ services.AddSingleton<ILanguageModel, AzureOpenAIClient>();
 services.AddSingleton<IRestClientAuthHeaderProvider, CustomAuthProvider>();
 services.AddSingleton<IVectorDbIngestion, LocalDirectoryIngestion>();
 //services.AddSingleton<IVectorDbIngestion, RestApiIngestion>();
-services.AddSingleton<ICommandAction, ConsoleChatbotCommand>();
+services.AddSingleton<ICommandAction, ChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();
 services.AddSingleton<ICommandAction, EvaluationCommand>();
@@ -46,17 +46,29 @@ services.AddSingleton<EvaluationMetricWorkflow>();
 services.AddSingleton<FileCache>();
 services.AddSingleton<ReportRepository>();
 services.AddSingleton<EvaluationSummarizeWorkflow>();
+services.AddSingleton<IngestionReporter>();
 
 var provider = services.BuildServiceProvider();
 foreach (var command in provider.GetServices<ICommandAction>())
 {
     if (command.Name == argsConfig["command"])
     {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("press Ctrl+C to stop...");
+        Console.ResetColor();
+
+        var cts = new CancellationTokenSource();
+        Console.CancelKeyPress += (s, e) =>
+        {
+            e.Cancel = true;
+            cts.Cancel();
+        };
+
         var sw = new Stopwatch();
         sw.Start();
         try
         {
-            await command.ExecuteAsync(argsConfig);
+            await command.ExecuteAsync(argsConfig, cancellationToken: cts.Token);
         }
         catch (Exception ex)
         {

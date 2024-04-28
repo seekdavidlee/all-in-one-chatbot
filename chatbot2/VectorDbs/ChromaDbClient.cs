@@ -54,7 +54,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
         foreach (var model in searchModels)
         {
             if (model.Id is null ||
-                model.ContentVector is null || 
+                model.ContentVector is null ||
                 model.Content is null)
             {
                 continue;
@@ -76,13 +76,13 @@ public class ChromaDbClient : IVectorDb, IDisposable
         return collectionClient.DeleteAsync([collectionName]);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText)
+    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)
     {
         if (collectionClient is null)
         {
             throw new Exception("CollectionClient is not initialized!");
         }
-        var embeddings = await embedding.GetEmbeddingsAsync([searchText]);
+        var embeddings = await embedding.GetEmbeddingsAsync([searchText], cancellationToken);
         var results = await collectionClient.QueryAsync(queryEmbeddings: embeddings, numberOfResults: 5);
         if (results is null || results.Ids is null || results.Distances is null)
         {
