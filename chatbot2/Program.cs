@@ -24,9 +24,9 @@ services.AddLogging(c =>
     c.AddConsole();
 });
 
-//services.AddSingleton<IEmbedding, LocalEmbedding>();
-//services.AddSingleton<IVectorDb, ChromaDbClient>();
-//services.AddSingleton<ILanguageModel, LocalLLM>();
+services.AddSingleton<IEmbedding, LocalEmbedding>();
+services.AddSingleton<IVectorDb, ChromaDbClient>();
+services.AddSingleton<ILanguageModel, LocalLLM>();
 services.AddSingleton<IEmbedding, AzureOpenAIEmbedding>();
 services.AddSingleton<IVectorDb, AzureAISearch>();
 services.AddSingleton<ILanguageModel, AzureOpenAIClient>();

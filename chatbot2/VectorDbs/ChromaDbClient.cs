@@ -1,21 +1,29 @@
 ﻿using ChromaDBSharp.Client;
-using System.Text;
 
 namespace chatbot2.VectorDbs;
 
 public class ChromaDbClient : IVectorDb, IDisposable
 {
-    private readonly ChromaDBClient client;
-    private readonly HttpClient httpClient;
+    private ChromaDBClient? client;
+    private HttpClient? httpClient;
     private ICollectionClient? collectionClient;
     private readonly IEmbedding embedding;
     private readonly string collectionName;
-    private readonly float minimumScore = 0.8f;
+    private float? minimumScore = 0.8f;
 
     public ChromaDbClient(IEnumerable<IEmbedding> embeddings)
     {
         embedding = embeddings.GetSelectedEmbedding();
         collectionName = Environment.GetEnvironmentVariable("CollectionName") ?? throw new Exception("Missing CollectionName");
+    }
+
+    public void Dispose()
+    {
+        httpClient.Dispose();
+    }
+
+    public async Task InitAsync()
+    {
         httpClient = new()
         {
             BaseAddress = new Uri(Environment.GetEnvironmentVariable("ChromaDbEndpoint") ?? throw new Exception("Missing ChromaDbEndpoint"))
@@ -30,15 +38,6 @@ public class ChromaDbClient : IVectorDb, IDisposable
                 minimumScore = envMinimumScore;
             }
         }
-    }
-
-    public void Dispose()
-    {
-        httpClient.Dispose();
-    }
-
-    public async Task InitAsync()
-    {
         var cols = await client.ListCollectionsAsync();
         collectionClient = cols.Any(x => x.Name == collectionName) ?
             await client.GetCollectionAsync(collectionName) :
@@ -120,37 +119,5 @@ public class ChromaDbClient : IVectorDb, IDisposable
         }
 
         return docs.Where(x => x.Score >= minimumScore).OrderByDescending(x => x.Score);
-    }
-}
-
-public class IndexedDocument
-{
-    public string? Id { get; set; }
-    public float? Score { get; set; }
-    public IDictionary<string, string>? MetaDatas { get; set; }
-
-    public string? Text { get; set; }
-
-    public override string ToString()
-    {
-        var sb = new StringBuilder();
-        sb.AppendLine($"Id: {Id}");
-        sb.AppendLine($"Score: {Score}");
-
-        if (MetaDatas is not null)
-        {
-            sb.AppendLine("MetaData:");
-            foreach (var m in MetaDatas)
-            {
-                sb.AppendLine($"{m.Key}: {m.Value}");
-            }
-        }
-
-        if (Text is not null)
-        {
-            sb.AppendLine($"DocumentText: {Text}");
-        }
-
-        return sb.ToString();
     }
 }

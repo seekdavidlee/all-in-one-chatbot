@@ -6,22 +6,40 @@ namespace chatbot2.Llms;
 
 public class LocalLLM : ILanguageModel
 {
-    private readonly LLamaContext context;
+    private LLamaContext? context;
+    private readonly string? modelPath;
+    private readonly SemaphoreSlim semaphore = new(1, 1);
+
     public LocalLLM()
     {
-        string modelPath = Environment.GetEnvironmentVariable("ModelFilePath") ?? throw new Exception("Missing ModelFilePath!"); // change it to your own model path.
-
-        var parameters = new ModelParams(modelPath)
-        {
-            ContextSize = 1024, // The longest length of chat as memory.
-            GpuLayerCount = 5, // How many layers to offload to GPU. Please adjust it according to your GPU memory.
-        };
-        using var model = LLamaWeights.LoadFromFile(parameters);
-        context = model.CreateContext(parameters);
+        modelPath = Environment.GetEnvironmentVariable("ModelFilePath");
     }
 
     public async Task<ChatCompletionResponse> GetChatCompletionsAsync(string text, LlmOptions options, ChatHistory? chatHistory = null)
     {
+        if (modelPath is null)
+        {
+            throw new Exception("Missing ModelFilePath!");
+        }
+        await semaphore.WaitAsync();
+        try
+        {
+            if (context is null)
+            {
+                var parameters = new ModelParams(modelPath)
+                {
+                    ContextSize = 1024, // The longest length of chat as memory.
+                    GpuLayerCount = 5, // How many layers to offload to GPU. Please adjust it according to your GPU memory.
+                };
+                using var model = LLamaWeights.LoadFromFile(parameters);
+                context = model.CreateContext(parameters);
+            }
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+
         InferenceParams inferenceParams = new()
         {
             MaxTokens = 256, // No more than 256 tokens should appear in answer. Remove it if antiprompt is enough for control.

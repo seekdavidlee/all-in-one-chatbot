@@ -38,6 +38,7 @@ public class InferenceWorkflow
             semaphore.Release();
         }
         Stopwatch stopwatch = new();
+        stopwatch.Start();
         var intentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
         intentPrompt = intentPrompt.Replace("{{$previous_intent}}", "");
         intentPrompt = intentPrompt.Replace("{{$query}}", userInput);
@@ -83,7 +84,7 @@ public class InferenceWorkflow
         replyPrompt = replyPrompt.Replace("{{$documentation}}", resultsArr.FullBody());
         replyPrompt = replyPrompt.Replace("{{$user_query}}", userInput);
 
-        
+
         var replyResponse = await languageModel.GetChatCompletionsAsync(replyPrompt, new LlmOptions());
         stopwatch.Stop();
         if (replyResponse is null)
