@@ -14,7 +14,7 @@ public class EvaluationCommand : ICommandAction
     private readonly EvaluationMetricWorkflow evaluationMetricWorkflow;
     private readonly InferenceWorkflow inferenceWorkflow;
     private readonly ILogger<EvaluationCommand> logger;
-    private readonly int concurrency = 1;
+
     public EvaluationCommand(
         ReportRepository reportRepository,
         GroundTruthIngestion groundTruthIngestion,
@@ -27,12 +27,6 @@ public class EvaluationCommand : ICommandAction
         this.evaluationMetricWorkflow = evaluationMetricWorkflow;
         this.inferenceWorkflow = inferenceWorkflow;
         this.logger = logger;
-
-        var concurrencyStr = Environment.GetEnvironmentVariable("Concurrency");
-        if (concurrencyStr is not null && int.TryParse(concurrencyStr, out int concurencyInt))
-        {
-            concurrency = concurencyInt;
-        }
     }
 
     public string Name => "evals";
@@ -85,13 +79,7 @@ public class EvaluationCommand : ICommandAction
 
         logger.LogInformation("starting evaluation runs: {path}", path);
 
-        ExecutionDataflowBlockOptions options = new()
-        {
-            MaxDegreeOfParallelism = concurrency,
-            TaskScheduler = TaskScheduler.Default
-        };
-
-        var blocks = new ActionBlock<Func<Task>>((action) => action(), options);
+        var blocks = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions());
 
         foreach (var group in groups)
         {

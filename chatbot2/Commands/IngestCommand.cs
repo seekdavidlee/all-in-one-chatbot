@@ -6,14 +6,14 @@ namespace chatbot2.Commands;
 
 public class IngestCommand : ICommandAction
 {
-    private readonly int concurrency;
     private readonly IEnumerable<IVectorDbIngestion> vectorDbIngestions;
     private readonly IVectorDb vectorDb;
-    public IngestCommand(IEnumerable<IVectorDbIngestion> vectorDbIngestions, IEnumerable<IVectorDb> vectorDbs)
+    private readonly IEmbedding embedding;
+    public IngestCommand(IEnumerable<IVectorDbIngestion> vectorDbIngestions, IEnumerable<IVectorDb> vectorDbs, IEnumerable<IEmbedding> embeddings)
     {
-        concurrency = int.Parse(Environment.GetEnvironmentVariable("Concurrency") ?? "2");
         this.vectorDbIngestions = vectorDbIngestions;
         vectorDb = vectorDbs.GetSelectedVectorDb();
+        embedding = embeddings.GetSelectedEmbedding();
     }
     public string Name => "ingest";
 
@@ -21,16 +21,11 @@ public class IngestCommand : ICommandAction
     {
         await vectorDb.InitAsync();
 
-        var sender = new ActionBlock<Func<Task>>((action) => action(),
-        new ExecutionDataflowBlockOptions
-        {
-            MaxDegreeOfParallelism = concurrency,
-            TaskScheduler = TaskScheduler.Default,
-        });
+        var sender = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(vectorDbIngestions.Count()));
 
         foreach (var ingestion in vectorDbIngestions)
         {
-            await sender.SendAsync(() => ingestion.RunAsync(vectorDb));
+            await sender.SendAsync(() => ingestion.RunAsync(vectorDb, embedding));
         }
         sender.Complete();
         await sender.Completion;

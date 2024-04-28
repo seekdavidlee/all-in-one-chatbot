@@ -84,7 +84,6 @@ public class InferenceWorkflow
         replyPrompt = replyPrompt.Replace("{{$documentation}}", resultsArr.FullBody());
         replyPrompt = replyPrompt.Replace("{{$user_query}}", userInput);
 
-
         var replyResponse = await languageModel.GetChatCompletionsAsync(replyPrompt, new LlmOptions());
         stopwatch.Stop();
         if (replyResponse is null)

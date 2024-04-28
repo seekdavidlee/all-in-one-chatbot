@@ -14,7 +14,7 @@ public class LocalEmbedding : IEmbedding
         modelPath = Environment.GetEnvironmentVariable("EmbeddingFilePath") ?? throw new Exception("Missing EmbeddingFilePath!"); // change it to your own model path.
     }
 
-    public async Task<float[]> GetEmbeddingsAsync(string text)
+    public async Task<List<float[]>> GetEmbeddingsAsync(string[] textList)
     {
         if (modelPath is null)
         {
@@ -34,7 +34,11 @@ public class LocalEmbedding : IEmbedding
         {
             semaphore.Release();
         }
-
-        return await embedder.GetEmbeddings(text);
+        List<float[]> list = new();
+        foreach (var text in textList)
+        {
+            list.Add(await embedder.GetEmbeddings(text));
+        }
+        return list;
     }
 }

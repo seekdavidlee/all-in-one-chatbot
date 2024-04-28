@@ -58,7 +58,7 @@ public class AzureAISearch : IVectorDb
 
     public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText)
     {
-        var embeddings = await embedding.GetEmbeddingsAsync(searchText);
+        var embeddings = (await embedding.GetEmbeddingsAsync([searchText])).Single();
 
         var query = new VectorizedQuery(embeddings);
         query.Fields.Add("contentVector");

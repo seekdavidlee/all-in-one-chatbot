@@ -1,6 +1,7 @@
 ﻿using chatbot2.VectorDbs;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks.Dataflow;
 
 namespace chatbot2;
 
@@ -40,5 +41,23 @@ public static class Util
             sb.AppendLine($"doc[{i}]\n{result.Text}\n");
         }
         return sb.ToString();
+    }
+    public static ExecutionDataflowBlockOptions GetDataflowOptions(int? overrideConcurrency = null)
+    {
+        int concurrency = overrideConcurrency ?? 1;
+        if (overrideConcurrency is null)
+        {
+            var concurrencyStr = Environment.GetEnvironmentVariable("Concurrency");
+            if (concurrencyStr is not null && int.TryParse(concurrencyStr, out int concurencyInt))
+            {
+                concurrency = concurencyInt;
+            }
+        }
+
+        return new ExecutionDataflowBlockOptions
+        {
+            MaxDegreeOfParallelism = concurrency,
+            TaskScheduler = TaskScheduler.Default,
+        }; ;
     }
 }

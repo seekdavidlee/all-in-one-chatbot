@@ -10,11 +10,10 @@ public class RestApiIngestion : IVectorDbIngestion
     private readonly IRestClientAuthHeaderProvider restClientAuthHeaderProvider;
     private readonly HttpClient httpClient;
     private readonly ILogger<RestApiIngestion> logger;
-    private readonly IEmbedding embedding;
+
     private readonly int BatchSize = 30;
     public RestApiIngestion(IEnumerable<IEmbedding> embeddings, IRestClientAuthHeaderProvider restClientAuthHeaderProvider, HttpClient httpClient, ILogger<RestApiIngestion> logger)
     {
-        embedding = embeddings.GetSelectedEmbedding();
         var config = JsonSerializer.Deserialize<RestClientConfig>(
             File.ReadAllText(Environment.GetEnvironmentVariable("RestClientConfigFilePath") ?? throw new Exception("Missing RestClientConfigFilePath")));
 
@@ -39,7 +38,7 @@ public class RestApiIngestion : IVectorDbIngestion
         this.httpClient.BaseAddress = new Uri(config.BaseUrl ?? throw new Exception("config url is invalid"));
     }
 
-    public async Task RunAsync(IVectorDb vectorDb)
+    public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding)
     {
         if (config.Mappings is null)
         {
@@ -85,7 +84,7 @@ public class RestApiIngestion : IVectorDbIngestion
             var records = ((JsonElement)page[config.RecordsField]).Deserialize<IDictionary<string, object>[]>();
             if (records is not null)
             {
-                List<SearchModel> searchModels = [];
+                List<(SearchModel Model, string VectorContent)> searchModels = [];
                 foreach (var record in records)
                 {
                     bool shouldAdd = true;
@@ -119,30 +118,40 @@ public class RestApiIngestion : IVectorDbIngestion
                         continue;
                     }
 
-                    searchModels.Add(await CreateAsync(embedding, record, config.Mappings));
+                    searchModels.Add(Create(record, config.Mappings));
 
                     if (searchModels.Count >= BatchSize)
                     {
-                        logger.LogInformation("Uploading batch of {0} records", searchModels.Count);
-                        await vectorDb.ProcessAsync(searchModels);
-                        searchModels.Clear();
+                        await ProcessBatchAsync(vectorDb, embedding, searchModels);
                     }
                 }
 
                 if (searchModels.Count > 0)
                 {
-                    logger.LogInformation("Uploading batch of {0} records", searchModels.Count);
-                    await vectorDb.ProcessAsync(searchModels);
-                    searchModels.Clear();
+                    await ProcessBatchAsync(vectorDb, embedding, searchModels);
                 }
             }
         }
     }
 
+    private async Task ProcessBatchAsync(IVectorDb vectorDb, IEmbedding embedding, List<(SearchModel Model, string VectorContent)> searchModels)
+    {
+        logger.LogInformation("Uploading batch of {0} records", searchModels.Count);
+
+        var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(x => x.VectorContent).ToArray());
+        for (var i = 0; i < floatsList.Count; i++)
+        {
+            searchModels[i].Model.ContentVector = floatsList[i];
+        }
+        await vectorDb.ProcessAsync(searchModels.Select(x => x.Model));
+        searchModels.Clear();
+    }
+
     const string DictionaryToJsonCoversion = "DictionaryToJson";
 
-    private static async Task<SearchModel> CreateAsync(IEmbedding embedding, IDictionary<string, object> record, RestClientMapping[] mappings)
+    private static (SearchModel Model, string VectorContent) Create(IDictionary<string, object> record, RestClientMapping[] mappings)
     {
+        string? vectorContent = null;
         var searchModel = new SearchModel
         {
             Id = Guid.NewGuid().ToString(),
@@ -207,9 +216,15 @@ public class RestApiIngestion : IVectorDbIngestion
 
             if (mapping.Target == "contentVector")
             {
-                searchModel.ContentVector = await embedding.GetEmbeddingsAsync(mappedValue);
+                vectorContent = mappedValue;
+                //searchModel.ContentVector = (await embedding.GetEmbeddingsAsync([mappedValue])).Single();
             }
         }
-        return searchModel;
+
+        if (vectorContent is null)
+        {
+            throw new Exception("vectorContent is not configured");
+        }
+        return (searchModel, vectorContent);
     }
 }

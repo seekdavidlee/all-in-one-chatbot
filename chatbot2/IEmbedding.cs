@@ -2,5 +2,5 @@
 
 public interface IEmbedding
 {
-    Task<float[]> GetEmbeddingsAsync(string text);
+    Task<List<float[]>> GetEmbeddingsAsync(string[] textList);
 }

@@ -32,7 +32,7 @@ services.AddSingleton<IVectorDb, AzureAISearch>();
 services.AddSingleton<ILanguageModel, AzureOpenAIClient>();
 services.AddSingleton<IRestClientAuthHeaderProvider, CustomAuthProvider>();
 services.AddSingleton<IVectorDbIngestion, LocalDirectoryIngestion>();
-services.AddSingleton<IVectorDbIngestion, RestApiIngestion>();
+//services.AddSingleton<IVectorDbIngestion, RestApiIngestion>();
 services.AddSingleton<ICommandAction, ConsoleChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();

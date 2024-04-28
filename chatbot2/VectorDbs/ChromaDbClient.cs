@@ -82,8 +82,8 @@ public class ChromaDbClient : IVectorDb, IDisposable
         {
             throw new Exception("CollectionClient is not initialized!");
         }
-        var embeddings = await embedding.GetEmbeddingsAsync(searchText);
-        var results = await collectionClient.QueryAsync(queryEmbeddings: new[] { embeddings }, numberOfResults: 5);
+        var embeddings = await embedding.GetEmbeddingsAsync([searchText]);
+        var results = await collectionClient.QueryAsync(queryEmbeddings: embeddings, numberOfResults: 5);
         if (results is null || results.Ids is null || results.Distances is null)
         {
             return [];
