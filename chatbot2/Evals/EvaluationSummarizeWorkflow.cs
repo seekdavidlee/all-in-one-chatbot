@@ -38,7 +38,8 @@ public class EvaluationSummarizeWorkflow
                     TotalDurationInMilliseconds = 0,
                     TotalRuns = 0,
                     TotalScore = 0,
-                    TotalFailedRuns = 0
+                    TotalFailedRuns = 0,
+                    FailedRunBlobNames = [],
                 };
             }
 
@@ -46,8 +47,9 @@ public class EvaluationSummarizeWorkflow
             {
                 if (item.Score is null)
                 {
-                    logger.LogWarning("Score is missing for {MetricName}, blob: {blobName}", Item.MetricName, BlobName);
+                    logger.LogWarning("Score is missing for {MetricName}, blob: {BlobName} at index {Index}", Item.MetricName, BlobName, item.Index);
                     metricSummary.TotalFailedRuns += 1;
+                    metricSummary.FailedRunBlobNames?.Add(BlobName);
                 }
                 else
                 {

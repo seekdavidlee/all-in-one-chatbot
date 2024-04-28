@@ -1,4 +1,6 @@
-﻿namespace chatbot2.Evals;
+﻿using System.Text.Json;
+
+namespace chatbot2.Evals;
 
 public class EvaluationMetricResult
 {
@@ -8,4 +10,9 @@ public class EvaluationMetricResult
     public double? DurationInMilliseconds { get; set; }
     public int? GroundTruthCompletionTokens { get; set; }
     public int? GroundTruthPromptTokens { get; set; }
+
+    public override string ToString()
+    {
+        return JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+    }
 }

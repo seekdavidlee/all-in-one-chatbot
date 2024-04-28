@@ -16,7 +16,7 @@ public class ChatHistory
             throw new Exception("Chats is not initialized!");
         }
 
-        // todo: trim chat history if too long
+        // todo: trim chat history if too long, use MaxTokens property to control
 
         StringBuilder sb = new();
         for (var i = Chats.Count - 1; i > -1; i--)

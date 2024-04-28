@@ -1,5 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace chatbot2.Evals;
@@ -19,7 +20,10 @@ public class ReportRepository
     public async Task SaveAsync<T>(string name, T item) where T : class
     {
         using var stream = new MemoryStream();
-        await JsonSerializer.SerializeAsync(stream, item);
+        await JsonSerializer.SerializeAsync(stream, item, new JsonSerializerOptions
+        {
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        });
         stream.Position = 0;
         await UploadAsync(name, stream);
     }
@@ -34,13 +38,18 @@ public class ReportRepository
     {
         await foreach (var b in client.GetBlobsAsync(prefix: path))
         {
-            var client = this.client.GetBlobClient(b.Name);
-            var content = await client.DownloadContentAsync();
-            var item = await JsonSerializer.DeserializeAsync<T>(content.Value.Content.ToStream());
+            var item = await GetItemAsync<T>(b.Name);
             if (item is not null)
             {
                 yield return (item, b.Name);
             }
         }
+    }
+
+    public async Task<T?> GetItemAsync<T>(string name)
+    {
+        var client = this.client.GetBlobClient(name);
+        var content = await client.DownloadContentAsync();
+        return await JsonSerializer.DeserializeAsync<T>(content.Value.Content.ToStream());
     }
 }

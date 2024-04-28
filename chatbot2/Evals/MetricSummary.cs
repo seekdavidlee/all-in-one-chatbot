@@ -7,4 +7,5 @@ public class MetricSummary
     public int TotalFailedRuns { get; set; }
     public double TotalScore { get; set; }
     public double TotalDurationInMilliseconds { get; set; }
+    public List<string>? FailedRunBlobNames { get; set; }
 }
