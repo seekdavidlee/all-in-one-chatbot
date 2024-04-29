@@ -7,5 +7,5 @@ public interface IVectorDb
     Task InitAsync();
     Task ProcessAsync(IEnumerable<SearchModel> models);
     Task DeleteAsync();
-    Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText);
+    Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken);
 }

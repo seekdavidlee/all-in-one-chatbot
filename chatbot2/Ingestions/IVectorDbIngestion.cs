@@ -2,5 +2,5 @@
 
 public interface IVectorDbIngestion
 {
-    Task RunAsync(IVectorDb vectorDb);
+    Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken);
 }

@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿using chatbot2.VectorDbs;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks.Dataflow;
 
 namespace chatbot2;
 
@@ -27,5 +30,35 @@ public static class Util
     {
         var languageModelType = Environment.GetEnvironmentVariable("LanguageModelType") ?? throw new Exception("Missing LanguageModelType!");
         return languageModels.Single(x => x.GetType().Name == languageModelType);
+    }
+
+    public static string FullBody(this IndexedDocument[] docs)
+    {
+        StringBuilder sb = new();
+        for (var i = 0; i < docs.Length; i++)
+        {
+            var result = docs[i];
+            sb.AppendLine($"doc[{i}]\n{result.Text}\n");
+        }
+        return sb.ToString();
+    }
+    public static ExecutionDataflowBlockOptions GetDataflowOptions(CancellationToken cancellationToken, int? overrideConcurrency = null)
+    {
+        int concurrency = overrideConcurrency ?? 1;
+        if (overrideConcurrency is null)
+        {
+            var concurrencyStr = Environment.GetEnvironmentVariable("Concurrency");
+            if (concurrencyStr is not null && int.TryParse(concurrencyStr, out int concurencyInt))
+            {
+                concurrency = concurencyInt;
+            }
+        }
+
+        return new ExecutionDataflowBlockOptions
+        {
+            MaxDegreeOfParallelism = concurrency,
+            TaskScheduler = TaskScheduler.Default,
+            CancellationToken = cancellationToken
+        }; ;
     }
 }

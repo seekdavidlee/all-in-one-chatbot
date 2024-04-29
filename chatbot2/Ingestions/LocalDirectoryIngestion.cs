@@ -1,59 +1,110 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using System.Threading.Tasks.Dataflow;
 
 namespace chatbot2.Ingestions;
 
 public class LocalDirectoryIngestion : IVectorDbIngestion
 {
+    private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<LocalDirectoryIngestion> logger;
-    private readonly IEmbedding embedding;
-    public LocalDirectoryIngestion(ILogger<LocalDirectoryIngestion> logger, IEnumerable<IEmbedding> embeddings)
+    private readonly int batchSize = 30;
+
+    public LocalDirectoryIngestion(IngestionReporter ingestionReporter, ILogger<LocalDirectoryIngestion> logger)
     {
+        this.ingestionReporter = ingestionReporter;
         this.logger = logger;
-        embedding = embeddings.GetSelectedEmbedding();
+
+        var ingestionBatchSize = Environment.GetEnvironmentVariable("IngestionBatchSize");
+        if (ingestionBatchSize is not null)
+        {
+            if (int.TryParse(ingestionBatchSize, out int batchSize))
+            {
+                this.batchSize = batchSize;
+            }
+        }
     }
-    public async Task RunAsync(IVectorDb vectorDb)
+
+    public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
     {
+        var sender = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(cancellationToken));
         string[] dataSourcePaths = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths!")).Split(',');
         var htmlReader = new HtmlReader();
 
         foreach (var dataSourcePath in dataSourcePaths)
         {
-            logger.LogInformation("processing data source: {dataSourcePath}...", dataSourcePath);
-            var result = await htmlReader.ReadFilesAsync(dataSourcePath);
-            foreach (var page in result.Pages)
+            logger.LogDebug("processing data source: {dataSourcePath}...", dataSourcePath);
+            var (Pages, Logs) = await htmlReader.ReadFilesAsync(dataSourcePath, cancellationToken);
+            foreach (var page in Pages)
             {
-                logger.LogInformation("processing page: {pagePath}...", page.Context.PagePath);
-                foreach (var section in page.Sections)
+                if (page.Sections.Count == 0)
                 {
-                    logger.LogInformation("processing section: {sectionPrefix}, {section}", section.IdPrefix, section);
-                    await ProcessAsync(vectorDb, section);
+                    logger.LogWarning("page has no sections: {pagePath}", page.Context.PagePath);
+                    continue;
                 }
+
+                logger.LogDebug("processing page: {pagePath}...", page.Context.PagePath);
+                await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, page, cancellationToken));
             }
-            foreach (var log in result.Logs)
+
+            foreach (var log in Logs)
             {
-                logger.LogInformation($"log: {log.Text}, source: {log.Source}");
+                logger.LogInformation("log: {logText}, source: {logSource}", log.Text, log.Source);
             }
         }
+
+        sender.Complete();
+        await sender.Completion;
     }
 
-    private async Task ProcessAsync(IVectorDb vectorDb, PageSection pageSection)
+    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, Page page, CancellationToken cancellationToken)
     {
-        List<SearchModel> models = [];
-        foreach (var t in pageSection.TextChunks)
+        try
         {
-            var m = new SearchModel
+            List<TextChunk> chunks = [];
+            foreach (var section in page.Sections)
             {
-                Id = Guid.NewGuid().ToString(),
-                Content = t.Text,
-                MetaData = JsonSerializer.Serialize(t.MetaDatas),
-                Filepath = t.Id,
-                ContentVector = await embedding.GetEmbeddingsAsync(t.Text ?? throw new Exception("Text cannot be null!")),
-            };
+                chunks.AddRange(section.TextChunks);
+            }
 
-            models.Add(m);
+            int totalProcess = 0;
+            for (int x = 0; x < chunks.Count; x += batchSize)
+            {
+                var chunkBatch = chunks.Skip(x).Take(batchSize).ToArray();
+                this.ingestionReporter.IncrementSearchModelsProcessing(chunkBatch.Length);
+                var floatsList = await embedding.GetEmbeddingsAsync(chunkBatch.Select(
+                    x => x.Text ?? throw new Exception("text is null")).ToArray(), cancellationToken);
+
+                List<SearchModel> models = [];
+                for (int i = 0; i < chunkBatch.Length; i++)
+                {
+                    var t = chunkBatch[i];
+                    var m = new SearchModel
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Content = t.Text,
+                        MetaData = JsonSerializer.Serialize(t.MetaDatas),
+                        Filepath = t.Id,
+                        ContentVector = floatsList[i]
+                    };
+
+                    models.Add(m);
+                }
+
+                await vectorDb.ProcessAsync(models);
+                this.ingestionReporter.IncrementSearchModelsProcessed(models.Count);
+
+                totalProcess += models.Count;
+            }
+
+            if (totalProcess != chunks.Count)
+            {
+                throw new Exception($"processed count mismatch: {totalProcess} != {chunks.Count}");
+            }
         }
-
-        await vectorDb.ProcessAsync(models);
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "error processing page");
+        }
     }
 }

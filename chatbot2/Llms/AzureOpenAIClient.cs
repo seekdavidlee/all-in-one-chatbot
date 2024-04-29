@@ -10,21 +10,41 @@ public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
         deploymentName = Environment.GetEnvironmentVariable("AzureOpenAILLMDeploymentModel") ?? throw new Exception("Missing AzureOpenAILLMDeploymentModel!");
     }
 
-    public async Task<string> GetChatCompletionsAsync(string text)
+    private const int DefaultMaxTokens = 4000;
+
+    public async Task<ChatCompletionResponse> GetChatCompletionsAsync(string text, LlmOptions options, ChatHistory? chatHistory = null)
     {
-        ChatRequestUserMessage chatMessage = new(text);
-
-        var options = new ChatCompletionsOptions
+        var chatCompletionsOptions = new ChatCompletionsOptions
         {
-            DeploymentName = deploymentName,
-            MaxTokens = 256,
-            Temperature = 0,
+            DeploymentName = options.DeploymentName ?? deploymentName,
+            MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
+            Temperature = options.Temperature ?? 0,
         };
-        options.Messages.Add(chatMessage);
 
-        var response = await Client.GetChatCompletionsAsync(options);
+        if (options.SystemPrompt is not null)
+        {
+            chatCompletionsOptions.Messages.Add(new ChatRequestUserMessage(options.SystemPrompt) { Role = ChatRole.System });
+        }
 
-        return response.Value.Choices[0].Message.Content;
+        if (chatHistory is not null && chatHistory.Chats is not null)
+        {
+            // todo: trim chat history if size exceeds
+            foreach (var chat in chatHistory.Chats)
+            {
+                chatCompletionsOptions.Messages.Add(new ChatRequestUserMessage(chat.User) { Role = ChatRole.User });
+                chatCompletionsOptions.Messages.Add(new ChatRequestUserMessage(chat.Bot) { Role = ChatRole.Assistant });
+            }
+        }
+
+        chatCompletionsOptions.Messages.Add(new ChatRequestUserMessage(text) { Role = ChatRole.User });
+
+        var response = await Client.GetChatCompletionsAsync(chatCompletionsOptions);
+
+        return new ChatCompletionResponse(response.Value.Choices[0].Message.Content)
+        {
+            PromptTokens = response.Value.Usage.PromptTokens,
+            CompletionTokens = response.Value.Usage.CompletionTokens,
+        };
     }
 }
 

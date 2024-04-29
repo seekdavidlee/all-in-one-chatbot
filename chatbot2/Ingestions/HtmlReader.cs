@@ -9,7 +9,7 @@ public class HtmlReader
     {
         pageContentXPath = Environment.GetEnvironmentVariable("PageContentXPath") ?? throw new Exception("Missing PageContentXPath");
     }
-    public async Task<(List<Page> Pages, List<PageLogEntry> Logs)> ReadFilesAsync(string sourceDirectory)
+    public async Task<(List<Page> Pages, List<PageLogEntry> Logs)> ReadFilesAsync(string sourceDirectory, CancellationToken cancellationToken)
     {
         var logs = new List<PageLogEntry>();
         List<Page> pages = [];
