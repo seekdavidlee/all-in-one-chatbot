@@ -1,6 +1,5 @@
-param($ResourceGroupName)
+param($version)
 $ErrorActionPreference = "Stop"
-$version = "v0.1"
 $appName = "chatbot2"
 $path = "chatbot2"
 
