@@ -8,11 +8,21 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
 {
     private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<LocalDirectoryIngestion> logger;
+    private readonly int batchSize = 30;
 
     public LocalDirectoryIngestion(IngestionReporter ingestionReporter, ILogger<LocalDirectoryIngestion> logger)
     {
         this.ingestionReporter = ingestionReporter;
         this.logger = logger;
+
+        var ingestionBatchSize = Environment.GetEnvironmentVariable("IngestionBatchSize");
+        if (ingestionBatchSize is not null)
+        {
+            if (int.TryParse(ingestionBatchSize, out int batchSize))
+            {
+                this.batchSize = batchSize;
+            }
+        }
     }
 
     public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
@@ -27,13 +37,16 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
             var (Pages, Logs) = await htmlReader.ReadFilesAsync(dataSourcePath, cancellationToken);
             foreach (var page in Pages)
             {
-                logger.LogDebug("processing page: {pagePath}...", page.Context.PagePath);
-                foreach (var section in page.Sections)
+                if (page.Sections.Count == 0)
                 {
-                    logger.LogDebug("processing section: {sectionPrefix}, {section}", section.IdPrefix, section);
-                    await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, section, cancellationToken));
+                    logger.LogWarning("page has no sections: {pagePath}", page.Context.PagePath);
+                    continue;
                 }
+
+                logger.LogDebug("processing page: {pagePath}...", page.Context.PagePath);
+                await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, page, cancellationToken));
             }
+
             foreach (var log in Logs)
             {
                 logger.LogInformation("log: {logText}, source: {logSource}", log.Text, log.Source);
@@ -44,36 +57,54 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
         await sender.Completion;
     }
 
-    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, PageSection pageSection, CancellationToken cancellationToken)
+    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, Page page, CancellationToken cancellationToken)
     {
         try
         {
-            this.ingestionReporter.IncrementSearchModelsProcessing(pageSection.TextChunks.Count());
-            var floatsList = await embedding.GetEmbeddingsAsync(pageSection.TextChunks.Select(
-                x => x.Text ?? throw new Exception("text is null")).ToArray(), cancellationToken);
-
-            List<SearchModel> models = [];
-            for (int i = 0; i < pageSection.TextChunks.Count; i++)
+            List<TextChunk> chunks = [];
+            foreach (var section in page.Sections)
             {
-                var t = pageSection.TextChunks[i];
-                var m = new SearchModel
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Content = t.Text,
-                    MetaData = JsonSerializer.Serialize(t.MetaDatas),
-                    Filepath = t.Id,
-                    ContentVector = floatsList[i]
-                };
-
-                models.Add(m);
+                chunks.AddRange(section.TextChunks);
             }
 
-            await vectorDb.ProcessAsync(models);
-            this.ingestionReporter.IncrementSearchModelsProcessed(models.Count);
+            int totalProcess = 0;
+            for (int x = 0; x < chunks.Count; x += batchSize)
+            {
+                var chunkBatch = chunks.Skip(x).Take(batchSize).ToArray();
+                this.ingestionReporter.IncrementSearchModelsProcessing(chunkBatch.Length);
+                var floatsList = await embedding.GetEmbeddingsAsync(chunkBatch.Select(
+                    x => x.Text ?? throw new Exception("text is null")).ToArray(), cancellationToken);
+
+                List<SearchModel> models = [];
+                for (int i = 0; i < chunkBatch.Length; i++)
+                {
+                    var t = chunkBatch[i];
+                    var m = new SearchModel
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Content = t.Text,
+                        MetaData = JsonSerializer.Serialize(t.MetaDatas),
+                        Filepath = t.Id,
+                        ContentVector = floatsList[i]
+                    };
+
+                    models.Add(m);
+                }
+
+                await vectorDb.ProcessAsync(models);
+                this.ingestionReporter.IncrementSearchModelsProcessed(models.Count);
+
+                totalProcess += models.Count;
+            }
+
+            if (totalProcess != chunks.Count)
+            {
+                throw new Exception($"processed count mismatch: {totalProcess} != {chunks.Count}");
+            }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "error processing page section");
+            logger.LogError(ex, "error processing page");
         }
     }
 }

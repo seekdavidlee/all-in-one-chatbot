@@ -12,7 +12,7 @@ public class RestApiIngestion : IVectorDbIngestion
     private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<RestApiIngestion> logger;
 
-    private readonly int BatchSize = 30;
+    private readonly int batchSize = 30;
     public RestApiIngestion(IRestClientAuthHeaderProvider restClientAuthHeaderProvider, HttpClient httpClient, IngestionReporter ingestionReporter, ILogger<RestApiIngestion> logger)
     {
         var config = JsonSerializer.Deserialize<RestClientConfig>(
@@ -28,7 +28,7 @@ public class RestApiIngestion : IVectorDbIngestion
         {
             if (int.TryParse(ingestionBatchSize, out int batchSize))
             {
-                BatchSize = batchSize;
+                this.batchSize = batchSize;
             }
         }
 
@@ -122,7 +122,7 @@ public class RestApiIngestion : IVectorDbIngestion
 
                     searchModels.Add(Create(record, config.Mappings));
 
-                    if (searchModels.Count >= BatchSize)
+                    if (searchModels.Count >= batchSize)
                     {
                         await ProcessBatchAsync(vectorDb, embedding, searchModels, cancellationToken);
                     }

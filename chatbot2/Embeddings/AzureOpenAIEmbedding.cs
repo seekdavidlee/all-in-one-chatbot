@@ -6,15 +6,34 @@ using chatbot2.Llms;
 
 namespace chatbot2.Embeddings;
 
-public class AzureOpenAIEmbedding : BaseAzureOpenAIClient, IEmbedding
+public class AzureOpenAIEmbedding : IEmbedding
 {
-    private readonly string deploymentModel;
+    private readonly string[] deploymentModels;
     private readonly int maxRetry = 3;
     private readonly IngestionReporter ingestionReporter;
+    private readonly OpenAIClient[] openAIClients;
 
     public AzureOpenAIEmbedding(IngestionReporter ingestionReporter)
     {
-        deploymentModel = Environment.GetEnvironmentVariable("AzureOpenAIEmbeddingDeploymentModel") ?? throw new Exception("Missing AzureOpenAIEmbeddingDeploymentModel!");
+        var deploymentsStr = Environment.GetEnvironmentVariable("AzureOpenAIEmbeddings") ?? throw new Exception("Missing AzureOpenAIEmbeddings!");
+        var deployments = deploymentsStr.Split(';');
+
+        deploymentModels = new string[deployments.Length];
+
+        openAIClients = deployments.Select((x, i) =>
+        {
+            var parts = x.Split(',');
+            if (parts.Length != 3)
+            {
+                throw new Exception($"Invalid AzureOpenAIEmbeddings format at index {i}!");
+            }
+
+            deploymentModels[i] = parts[2];
+
+            AzureKeyCredential credentials = new(parts[1]);
+            return new OpenAIClient(new Uri(parts[0]), credentials);
+        }).ToArray();
+
         var maxRetryStr = Environment.GetEnvironmentVariable("AzureOpenAIEmbeddingMaxRetry");
         if (maxRetryStr is not null)
         {
@@ -26,6 +45,20 @@ public class AzureOpenAIEmbedding : BaseAzureOpenAIClient, IEmbedding
 
         this.ingestionReporter = ingestionReporter;
     }
+    private int currentIndex;
+    private (OpenAIClient Client, int Index) GetNextClient()
+    {
+        lock (openAIClients)
+        {
+            if (openAIClients.Length == 0)
+            {
+                throw new InvalidOperationException("No clients available");
+            }
+
+            currentIndex = (currentIndex + 1) % openAIClients.Length;
+            return (openAIClients[currentIndex], currentIndex);
+        }
+    }
 
     public async Task<List<float[]>> GetEmbeddingsAsync(string[] textList, CancellationToken cancellationToken)
     {
@@ -34,7 +67,8 @@ public class AzureOpenAIEmbedding : BaseAzureOpenAIClient, IEmbedding
         {
             try
             {
-                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deploymentModel, textList), cancellationToken);
+                var (Client, Index) = GetNextClient();
+                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deploymentModels[Index], textList), cancellationToken);
                 return response.Value.Data.Select(x => x.Embedding.ToArray()).ToList();
             }
             catch (RequestFailedException ex)
@@ -45,7 +79,7 @@ public class AzureOpenAIEmbedding : BaseAzureOpenAIClient, IEmbedding
                     throw;
                 }
 
-                await Task.Delay((retry + 1) * 2000, cancellationToken);
+                await Task.Delay((retry + 1) * 1000, cancellationToken);
                 retry++;
             }
         }
