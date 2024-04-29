@@ -17,9 +17,9 @@ var netConfig = new NetBricks.Config();
 var config = new Config(netConfig);
 config.Validate();
 
-
 IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
+       .AddEnvironmentVariables()
        .Build();
 
 var services = new ServiceCollection();
@@ -56,10 +56,11 @@ services.AddSingleton<ReportRepository>();
 services.AddSingleton<EvaluationSummarizeWorkflow>();
 services.AddSingleton<IngestionReporter>();
 
+var cmdName = argsConfig["command"];
 var provider = services.BuildServiceProvider();
 foreach (var command in provider.GetServices<ICommandAction>())
 {
-    if (command.Name == argsConfig["command"])
+    if (command.Name == cmdName)
     {
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("press Ctrl+C to stop...");
