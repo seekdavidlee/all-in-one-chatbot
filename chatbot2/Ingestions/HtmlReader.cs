@@ -29,7 +29,7 @@ public class HtmlReader
         }
 
         await foreach (var blob in blobContainerClient.GetBlobsAsync(
-            prefix: sourceDirectory.Substring(containerName.Length + 1), cancellationToken: cancellationToken))
+            prefix: sourceDirectory[(containerName.Length + 1)..], cancellationToken: cancellationToken))
         {
             var bc = new BlobClient(config.AzureStorageConnectionString, containerName, blob.Name);
             var content = await bc.DownloadContentAsync(cancellationToken);
