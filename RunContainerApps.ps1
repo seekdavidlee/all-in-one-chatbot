@@ -57,14 +57,20 @@ $containerConfig = $topLevelConfig.containerConfig
 ## ACI VARS ##
 
 # use tags to get the resource group name for the ACI
-$resourceGroup = ""
-try {
-    $resourceGroup = (az group list --tag "$($config.RG_TAG_NAME)=$($config.RG_TAG_VALUE)" | ConvertFrom-Json)[0]
+if ($topLevelConfig.RG_VALUE) {
+    $resourceGroup = (az group show -n $topLevelConfig.RG_VALUE | ConvertFrom-Json)
 }
-catch {
-    Write-Host "    Error: $resourceGroup"
-    Write-Host "    Could not use tags to get resource group."
-    exit
+else {
+    if (!$resourceGroup) {
+        try {
+            $resourceGroup = (az group list --tag "$($config.RG_TAG_NAME)=$($config.RG_TAG_VALUE)" | ConvertFrom-Json)[0]
+        }
+        catch {
+            Write-Host "    Error: $resourceGroup"
+            Write-Host "    Could not use tags to get resource group."
+            exit
+        }
+    }
 }
 
 # use tags to get the ACR name and password
@@ -146,7 +152,7 @@ function Add-Containers {
 
         } -ArgumentList $containerName
 
-        Write-Host "     Running Job - ContainerName: $($containerName)..."
+        Write-Host "Running Job - ContainerName: $($containerName)..."
     }
 
     # wait for all jobs to complete
@@ -154,7 +160,7 @@ function Add-Containers {
     if ($failedJobs.Count -gt 0) {
         Write-Host "Failed jobs:"
         $failedJobs | Format-Table
-        throw "Failed to $($Action) container(s)."
+        throw "Failed to add container(s)."
     }
 
     Write-Host "Container created... Done" -BackgroundColor Green
@@ -353,20 +359,16 @@ switch ($COMMAND) {
 
     "run" {
         $containers = @(Get-AllContainers)
-
-
-        # use diff column from diffTable to determine which containers to add or delete
-        $requestCount = $diffTable.RequestCount
-        $currentCount = $diffTable.CurrentCount
-        $diff = $diffTable.Diff
+        
+        $diff = $REPLICA_COUNT - $containers.Length
 
         if ($diff -gt 0) {
             # add containers
-            Add-Containers -StartingNameIndex $currentCount -Count $requestCount
+            Add-Containers -StartingNameIndex $currentCount -Count $diff
         }
         elseif ($diff -lt 0) {
             # delete containers
-            Remove-Containers -StartingNameIndex $requestCount -Count $currentCount
+            Remove-Containers -StartingNameIndex $requestCount -Count ($containers.Length - $REPLICA_COUNT)
         }
         else {
             Write-Host "No changes were made."
