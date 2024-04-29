@@ -1,5 +1,6 @@
 ﻿using Azure.AI.OpenAI;
 using Azure;
+using chatbot2.Configuration;
 
 namespace chatbot2.Llms;
 
@@ -7,9 +8,9 @@ public abstract class BaseAzureOpenAIClient
 {
     private readonly OpenAIClient openAIClient;
 
-    protected BaseAzureOpenAIClient()
+    protected BaseAzureOpenAIClient(IConfig config)
     {
-        var oaiKey = Environment.GetEnvironmentVariable("AzureOpenAIKey") ?? throw new Exception("Missing AzureOpenAIKey!");
+        var oaiKey = config.AzureOpenAIKey;
         var oaiEndpoint = new Uri(Environment.GetEnvironmentVariable("AzureOpenAIEndpoint") ?? throw new Exception("Missing AzureOpenAIEndpoint!"));
 
         AzureKeyCredential credentials = new(oaiKey);

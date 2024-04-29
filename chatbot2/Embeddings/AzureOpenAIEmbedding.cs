@@ -1,6 +1,7 @@
 ﻿
 using Azure;
 using Azure.AI.OpenAI;
+using chatbot2.Configuration;
 using chatbot2.Ingestions;
 using chatbot2.Llms;
 
@@ -13,9 +14,9 @@ public class AzureOpenAIEmbedding : IEmbedding
     private readonly IngestionReporter ingestionReporter;
     private readonly OpenAIClient[] openAIClients;
 
-    public AzureOpenAIEmbedding(IngestionReporter ingestionReporter)
+    public AzureOpenAIEmbedding(IngestionReporter ingestionReporter, IConfig config)
     {
-        var deploymentsStr = Environment.GetEnvironmentVariable("AzureOpenAIEmbeddings") ?? throw new Exception("Missing AzureOpenAIEmbeddings!");
+        var deploymentsStr = config.AzureOpenAIEmbeddings;
         var deployments = deploymentsStr.Split(';');
 
         deploymentModels = new string[deployments.Length];

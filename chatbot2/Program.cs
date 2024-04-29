@@ -10,12 +10,20 @@ using chatbot2.Commands;
 using chatbot2.Evals;
 using chatbot2.Inferences;
 using System.Diagnostics;
+using chatbot2.Configuration;
+
+// add config
+var netConfig = new NetBricks.Config();
+var config = new Config(netConfig);
+config.Validate();
+
 
 IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
        .Build();
 
 var services = new ServiceCollection();
+services.AddSingleton<IConfig>(config);
 services.AddHttpClient();
 services.AddLogging(c =>
 {
@@ -60,6 +68,7 @@ foreach (var command in provider.GetServices<ICommandAction>())
         var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (s, e) =>
         {
+            Console.WriteLine("\nuser cancelled");
             e.Cancel = true;
             cts.Cancel();
         };

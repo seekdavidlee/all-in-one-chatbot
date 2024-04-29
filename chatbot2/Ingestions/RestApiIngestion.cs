@@ -1,4 +1,6 @@
 ﻿using System.Text.Json;
+using Azure.Storage.Blobs;
+using chatbot2.Configuration;
 using chatbot2.Ingestions;
 using Microsoft.Extensions.Logging;
 
@@ -13,16 +15,25 @@ public class RestApiIngestion : IVectorDbIngestion
     private readonly ILogger<RestApiIngestion> logger;
 
     private readonly int batchSize = 30;
-    public RestApiIngestion(IRestClientAuthHeaderProvider restClientAuthHeaderProvider, HttpClient httpClient, IngestionReporter ingestionReporter, ILogger<RestApiIngestion> logger)
+    public RestApiIngestion(IConfig config, IRestClientAuthHeaderProvider restClientAuthHeaderProvider, HttpClient httpClient, IngestionReporter ingestionReporter, ILogger<RestApiIngestion> logger)
     {
-        var config = JsonSerializer.Deserialize<RestClientConfig>(
-            File.ReadAllText(Environment.GetEnvironmentVariable("RestClientConfigFilePath") ?? throw new Exception("Missing RestClientConfigFilePath")));
+        var restClientConfig = Environment.GetEnvironmentVariable("RestClientConfig") ?? throw new Exception("Missing RestClientConfigFilePath");
 
-        if (config is null)
+        const string blobPrefix = "blob:";
+        string json;
+        if (restClientConfig.StartsWith(blobPrefix))
         {
-            throw new Exception("Failed to deserialize RestClientConfig");
+            var parts = restClientConfig.Substring(blobPrefix.Length).Split('\\');
+            var connectionString = config.AzureStorageConnectionString;
+            var blob = new BlobClient(connectionString, parts[0], parts[1]);
+            using var sr = new StreamReader(blob.DownloadContent().Value.Content.ToStream());
+            json = sr.ReadToEnd();
         }
-
+        else
+        {
+            json = File.ReadAllText(restClientConfig);
+        }
+        RestClientConfig rcConfig = JsonSerializer.Deserialize<RestClientConfig>(json) ?? throw new Exception("Failed to deserialize RestClientConfig");
         var ingestionBatchSize = Environment.GetEnvironmentVariable("IngestionBatchSize");
         if (ingestionBatchSize is not null)
         {
@@ -32,12 +43,12 @@ public class RestApiIngestion : IVectorDbIngestion
             }
         }
 
-        this.config = config;
+        this.config = rcConfig;
         this.restClientAuthHeaderProvider = restClientAuthHeaderProvider;
         this.httpClient = httpClient;
         this.ingestionReporter = ingestionReporter;
         this.logger = logger;
-        this.httpClient.BaseAddress = new Uri(config.BaseUrl ?? throw new Exception("config url is invalid"));
+        this.httpClient.BaseAddress = new Uri(rcConfig.BaseUrl ?? throw new Exception("config url is invalid"));
     }
 
     public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
@@ -67,7 +78,7 @@ public class RestApiIngestion : IVectorDbIngestion
 
         while (continuationRoute is not null)
         {
-            var response = await this.httpClient.GetStringAsync(continuationRoute);
+            var response = await httpClient.GetStringAsync(continuationRoute, cancellationToken);
             if (response is null)
             {
                 throw new Exception("Unable to read response content");
@@ -138,7 +149,7 @@ public class RestApiIngestion : IVectorDbIngestion
 
     private async Task ProcessBatchAsync(IVectorDb vectorDb, IEmbedding embedding, List<(SearchModel Model, string VectorContent)> searchModels, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Uploading batch of {0} records", searchModels.Count);
+        logger.LogInformation("Uploading batch of {searchModelsCount} records", searchModels.Count);
         this.ingestionReporter.IncrementSearchModelsProcessing(searchModels.Count);
         var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(x => x.VectorContent).ToArray(), cancellationToken);
         for (var i = 0; i < floatsList.Count; i++)

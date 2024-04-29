@@ -3,6 +3,7 @@ using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
+using chatbot2.Configuration;
 using System.Text.Json;
 
 namespace chatbot2.VectorDbs;
@@ -13,12 +14,12 @@ public class AzureAISearch : IVectorDb
     private readonly SearchClient searchClient;
     private readonly SearchIndexClient searchIndexClient;
     private readonly IEmbedding embedding;
-    public AzureAISearch(IEnumerable<IEmbedding> embeddings)
+    public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config)
     {
         embedding = embeddings.GetSelectedEmbedding();
         collectionName = Environment.GetEnvironmentVariable("CollectionName") ?? throw new Exception("Missing CollectionName");
         Uri azureSearchEndpoint = new(Environment.GetEnvironmentVariable("AzureSearchEndpoint") ?? throw new Exception("Missing AzureSearchEndpoint"));
-        var keyCredentials = new AzureKeyCredential(Environment.GetEnvironmentVariable("AzureSearchKey") ?? throw new Exception("Missing AzureSearchKey"));
+        AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
         searchIndexClient = new(azureSearchEndpoint, keyCredentials);
         searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
     }
@@ -72,7 +73,7 @@ public class AzureAISearch : IVectorDb
             VectorSearch = vectorSearchOptions
         };
 
-        var results = await searchClient.SearchAsync<SearchModel>(searchOptions);
+        var results = await searchClient.SearchAsync<SearchModel>(searchOptions, cancellationToken);
 
         List<IndexedDocument> indexedDocuments = [];
         await foreach (var result in results.Value.GetResultsAsync())
