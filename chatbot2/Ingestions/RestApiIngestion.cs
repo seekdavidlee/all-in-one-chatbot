@@ -19,11 +19,11 @@ public class RestApiIngestion : IVectorDbIngestion
     {
         var restClientConfig = Environment.GetEnvironmentVariable("RestClientConfig") ?? throw new Exception("Missing RestClientConfigFilePath");
 
-        const string blobPrefix = "blob:";
+        
         string json;
-        if (restClientConfig.StartsWith(blobPrefix))
+        if (restClientConfig.StartsWith(Util.BlobPrefix))
         {
-            var parts = restClientConfig.Substring(blobPrefix.Length).Split('\\');
+            var parts = restClientConfig.Substring(Util.BlobPrefix.Length).Split('\\');
             var connectionString = config.AzureStorageConnectionString;
             var blob = new BlobClient(connectionString, parts[0], parts[1]);
             using var sr = new StreamReader(blob.DownloadContent().Value.Content.ToStream());
@@ -231,7 +231,6 @@ public class RestApiIngestion : IVectorDbIngestion
             if (mapping.Target == "contentVector")
             {
                 vectorContent = mappedValue;
-                //searchModel.ContentVector = (await embedding.GetEmbeddingsAsync([mappedValue])).Single();
             }
         }
 

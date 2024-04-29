@@ -7,6 +7,8 @@ namespace chatbot2;
 
 public static class Util
 {
+    public const string BlobPrefix = "blob:";
+
     public static Task<string> GetResourceAsync(string resourceName)
     {
         using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"chatbot2.Prompts.{resourceName}");

@@ -18,8 +18,8 @@ public class PageSection
         this.reference = reference;
         this.stopTag = stopTag;
 
-        var removePrefix = Environment.GetEnvironmentVariable("RemovePagePathPrefix") ?? throw new Exception("Missing RemovePagePathPrefix");
-        idPrefix = $"{pageContext.GetFileName(removePrefix)}/{sectionCounter}";
+        var removePrefix = Environment.GetEnvironmentVariable("RemovePagePathPrefix");
+        idPrefix = removePrefix is not null ? $"{pageContext.GetFileName(removePrefix)}/{sectionCounter}" : $"/{sectionCounter}";
     }
 
     public string IdPrefix { get { return idPrefix; } }

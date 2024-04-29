@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using chatbot2.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 using System.Threading.Tasks.Dataflow;
 
@@ -7,12 +8,14 @@ namespace chatbot2.Ingestions;
 public class LocalDirectoryIngestion : IVectorDbIngestion
 {
     private readonly IngestionReporter ingestionReporter;
+    private readonly IConfig config;
     private readonly ILogger<LocalDirectoryIngestion> logger;
     private readonly int batchSize = 30;
 
-    public LocalDirectoryIngestion(IngestionReporter ingestionReporter, ILogger<LocalDirectoryIngestion> logger)
+    public LocalDirectoryIngestion(IngestionReporter ingestionReporter, IConfig config, ILogger<LocalDirectoryIngestion> logger)
     {
         this.ingestionReporter = ingestionReporter;
+        this.config = config;
         this.logger = logger;
 
         var ingestionBatchSize = Environment.GetEnvironmentVariable("IngestionBatchSize");
@@ -28,13 +31,15 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
     public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
     {
         var sender = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(cancellationToken));
-        string[] dataSourcePaths = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths!")).Split(',');
-        var htmlReader = new HtmlReader();
+        var dataSourcePathsStr = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths"));
+        bool isBlob = dataSourcePathsStr.StartsWith(Util.BlobPrefix);
+        string[] dataSourcePaths = (isBlob ? dataSourcePathsStr[Util.BlobPrefix.Length..] : dataSourcePathsStr).Split(',');
+        var htmlReader = new HtmlReader(this.config);
 
         foreach (var dataSourcePath in dataSourcePaths)
         {
             logger.LogDebug("processing data source: {dataSourcePath}...", dataSourcePath);
-            var (Pages, Logs) = await htmlReader.ReadFilesAsync(dataSourcePath, cancellationToken);
+            var (Pages, Logs) = isBlob ? await htmlReader.ReadBlobsAsync(dataSourcePath, cancellationToken) : await htmlReader.ReadFilesAsync(dataSourcePath, cancellationToken);
             foreach (var page in Pages)
             {
                 if (page.Sections.Count == 0)
