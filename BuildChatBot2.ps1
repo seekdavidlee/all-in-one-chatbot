@@ -14,7 +14,8 @@ if ($acr.Length -eq 0) {
 $AcrName = $acr.Name
 
 # Login to ACR
-az acr login --name $AcrName
+# az acr login --name $AcrName -> NOT SUPPORTED in docker
+az acr login -n $AcrName --expose-token
 if ($LastExitCode -ne 0) {
     throw "An error has occured. Unable to login to acr."
 }
