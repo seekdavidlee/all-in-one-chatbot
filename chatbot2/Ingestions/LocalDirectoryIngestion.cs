@@ -38,7 +38,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
 
         foreach (var dataSourcePath in dataSourcePaths)
         {
-            logger.LogDebug("processing data source: {dataSourcePath}...", dataSourcePath);
+            logger.LogInformation("processing data source: {dataSourcePath}...", dataSourcePath);
             var (Pages, Logs) = isBlob ? await htmlReader.ReadBlobsAsync(dataSourcePath, cancellationToken) : await htmlReader.ReadFilesAsync(dataSourcePath, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)

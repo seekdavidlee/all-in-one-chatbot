@@ -1,5 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using chatbot2.Configuration;
+using chatbot2.Logging;
 using HtmlAgilityPack;
 
 namespace chatbot2.Ingestions;
@@ -18,6 +19,8 @@ public class HtmlReader
 
     public async Task<(List<Page> Pages, List<PageLogEntry> Logs)> ReadBlobsAsync(string sourceDirectory, CancellationToken cancellationToken)
     {
+        using var readBlobs = DiagnosticServices.Source.StartActivity("ReadBlobsAsync");
+        readBlobs?.AddTag("sourceDirectory", sourceDirectory);
         var logs = new List<PageLogEntry>();
         List<Page> pages = [];
 
@@ -28,9 +31,15 @@ public class HtmlReader
             blobContainerClient = new BlobContainerClient(config.AzureStorageConnectionString, containerName);
         }
 
+        int totalBlobs = 0;
+        int totalBlobsWithValidContent = 0;
         await foreach (var blob in blobContainerClient.GetBlobsAsync(
             prefix: sourceDirectory[(containerName.Length + 1)..], cancellationToken: cancellationToken))
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return (pages, logs);
+            }
             var bc = new BlobClient(config.AzureStorageConnectionString, containerName, blob.Name);
             var content = await bc.DownloadContentAsync(cancellationToken);
             using var reader = new StreamReader(content.Value.Content.ToStream());
@@ -38,21 +47,31 @@ public class HtmlReader
             if (page is not null)
             {
                 pages.Add(page);
+                totalBlobsWithValidContent++;
             }
+            totalBlobs++;
         }
-
+        readBlobs?.AddTag("totalBlobs", totalBlobs);
+        readBlobs?.AddTag("totalBlobsWithValidContent", totalBlobsWithValidContent);
         return (pages, logs);
     }
 
     public async Task<(List<Page> Pages, List<PageLogEntry> Logs)> ReadFilesAsync(string sourceDirectory, CancellationToken cancellationToken)
     {
+        using var readBlobs = DiagnosticServices.Source.StartActivity("ReadBlobsAsync");
+        readBlobs?.AddTag("sourceDirectory", sourceDirectory);
+
+        var stats = new FileReadStats();
         var logs = new List<PageLogEntry>();
         List<Page> pages = [];
-        await InternalReadFilesAsync(sourceDirectory, pages, logs, cancellationToken);
+        await InternalReadFilesAsync(sourceDirectory, pages, logs, stats, cancellationToken);
+
+        readBlobs?.AddTag("totalFiles", stats.Total);
+        readBlobs?.AddTag("totalFilesWithValidContent", stats.TotalValidContent);
         return (pages, logs);
     }
 
-    private async Task InternalReadFilesAsync(string sourceDirectory, List<Page> pages, List<PageLogEntry> logs, CancellationToken cancellationToken)
+    private async Task InternalReadFilesAsync(string sourceDirectory, List<Page> pages, List<PageLogEntry> logs, FileReadStats stats, CancellationToken cancellationToken)
     {
         var dirs = Directory.GetDirectories(sourceDirectory);
         foreach (var dir in dirs)
@@ -61,11 +80,12 @@ public class HtmlReader
             {
                 return;
             }
-            await InternalReadFilesAsync(dir, pages, logs, cancellationToken);
+            await InternalReadFilesAsync(dir, pages, logs, stats, cancellationToken);
         }
 
         foreach (var filePath in Directory.GetFiles(sourceDirectory, "*.htm"))
         {
+            stats.Total++;
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
@@ -75,6 +95,7 @@ public class HtmlReader
             {
                 continue;
             }
+            stats.TotalValidContent++;
             pages.Add(page);
         };
     }
@@ -99,5 +120,11 @@ public class HtmlReader
         Page page = new(node, new PageContext { PagePath = source }, logs);
         page.Process();
         return page;
+    }
+
+    private class FileReadStats
+    {
+        public int Total { get; set; } = 0;
+        public int TotalValidContent { get; set; } = 0;
     }
 }

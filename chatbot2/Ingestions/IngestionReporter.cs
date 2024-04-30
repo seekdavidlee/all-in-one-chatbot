@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System;
 
 namespace chatbot2.Ingestions;
 
@@ -15,6 +16,8 @@ public class IngestionReporter
     private int searchModelsProcessing;
     private int searchModelsErrors;
     private int embeddingTokensProcessed;
+    private DateTime lastReportTime = DateTime.UtcNow;
+    private readonly DateTime reporterStartTime = DateTime.UtcNow;
 
     public int IncrementSearchModelsProcessing(int count)
     {
@@ -38,26 +41,25 @@ public class IngestionReporter
         return Interlocked.Increment(ref searchModelsErrors);
     }
 
-    public void Report(DateTime utcStarted)
+    public void Report()
     {
         lock (reportLock)
         {
-            TimeSpan span = DateTime.UtcNow - utcStarted;
-            if (span.TotalSeconds > 0)
-            {
-                var total = Interlocked.Add(ref totalSearchModelsProcessed, 0);
-                double perSec = total / span.TotalSeconds;
-                logger.LogInformation("SearchModel Total: {total}, Rate: {avg:0.00}/sec", total, perSec);
+            var totalSpan = DateTime.UtcNow - reporterStartTime;
+            var total = Interlocked.Add(ref totalSearchModelsProcessed, 0);
+            double perSec = total / totalSpan.TotalSeconds;
+            logger.LogInformation("SearchModel Total: {totalSearchModelsProcessed}, AvgRate: {totalSearchModelsProcessedAvg:0.00}/sec", total, perSec);
 
-                span = DateTime.UtcNow - utcStarted;
-                total = Interlocked.Add(ref embeddingTokensProcessed, 0);
-                perSec = total / span.TotalSeconds;
-                logger.LogInformation("Embedding tokens Total: {total}, Rate: {avg:0.00}/sec", total, perSec);
-            }
-            else
-            {
-                logger.LogWarning("unable to report, totalSeconds is 0");
-            }
+            double totalSeconds = (DateTime.UtcNow - lastReportTime).TotalSeconds;
+            lastReportTime = DateTime.UtcNow;
+
+            int intervalTotal = Interlocked.Add(ref searchModelsProcessed, 0);
+            perSec = intervalTotal / totalSeconds;
+            logger.LogInformation("SearchModel Interval Total: {totalSearchModelsProcessed}, Interval AvgRate: {intervalSearchModelsProcessedAvg:0.00}/sec", intervalTotal, perSec);
+
+            intervalTotal = Interlocked.Add(ref embeddingTokensProcessed, 0);
+            perSec = intervalTotal / totalSeconds;
+            logger.LogInformation("Embedding tokens Interval Total: {embeddingTokensProcessed}, Interval AvgRate: {intervalEmbeddingTokensProcessedAvg:0.00}/sec", total, perSec);
 
             logger.LogInformation("SearchModel: processing: {searchModelsProcessing} processed: {searchModelsProcessed}, errors: {searchModelsErrors}",
                 Interlocked.Add(ref searchModelsProcessing, 0),
@@ -68,6 +70,7 @@ public class IngestionReporter
             Interlocked.Exchange(ref searchModelsProcessing, 0);
             Interlocked.Exchange(ref searchModelsProcessed, 0);
             Interlocked.Exchange(ref searchModelsErrors, 0);
+            Interlocked.Exchange(ref embeddingTokensProcessed, 0);
         }
     }
 }

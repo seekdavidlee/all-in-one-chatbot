@@ -48,7 +48,7 @@ public class IngestCommand : ICommandAction
         var sender = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(cancellationToken, vectorDbIngestions.Count()));
 
         var started = DateTime.UtcNow;
-        var timer = new Timer((o) => this.ingestionReporter.Report(started),
+        var timer = new Timer((o) => this.ingestionReporter.Report(),
             null, TimeSpan.FromSeconds(reportEveryXSeconds), TimeSpan.FromSeconds(reportEveryXSeconds));
 
         int doneCount = vectorDbIngestions.Count();
