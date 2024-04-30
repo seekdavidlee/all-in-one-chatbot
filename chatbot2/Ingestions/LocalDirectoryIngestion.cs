@@ -47,7 +47,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
             }
 
             int size = 0;
-            List<TextChunk> chunks = new();
+            List<TextChunk> chunks = [];
             foreach (var page in Pages)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -62,21 +62,19 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
 
                 logger.LogDebug("processing page: {pagePath}...", page.Context.PagePath);
 
-                totalRecords += page.Sections.Sum(x => x.TextChunks.Count);
-
                 foreach (var section in page.Sections)
                 {
                     foreach (var txtChunk in section.TextChunks)
                     {
                         if (size + txtChunk.TokenCount > this.batchSize)
                         {
-                            await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, chunks.ToArray(), cancellationToken));
+                            await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, [.. chunks], cancellationToken));
                             size = 0;
                             chunks.Clear();
                         }
                         size += txtChunk.TokenCount;
                         chunks.Add(txtChunk);
-
+                        totalRecords++;
                     }
                 }
             }
