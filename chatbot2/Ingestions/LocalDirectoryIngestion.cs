@@ -34,7 +34,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
         var dataSourcePathsStr = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths"));
         bool isBlob = dataSourcePathsStr.StartsWith(Util.BlobPrefix);
         string[] dataSourcePaths = (isBlob ? dataSourcePathsStr[Util.BlobPrefix.Length..] : dataSourcePathsStr).Split(',');
-        var htmlReader = new HtmlReader(this.config);
+        var htmlReader = new HtmlReader(this.config, this.logger);
 
         foreach (var dataSourcePath in dataSourcePaths)
         {
@@ -59,6 +59,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
                 }
 
                 logger.LogDebug("processing page: {pagePath}...", page.Context.PagePath);
+
                 await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, page, cancellationToken));
             }
 
@@ -67,6 +68,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
                 logger.LogInformation("log: {logText}, source: {logSource}", log.Text, log.Source);
             }
         }
+
 
         sender.Complete();
         await sender.Completion;

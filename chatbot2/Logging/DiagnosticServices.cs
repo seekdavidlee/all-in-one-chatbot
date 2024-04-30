@@ -9,6 +9,7 @@ public static class DiagnosticServices
     public static readonly ActivitySource Source = new(SourceName);
     static readonly Meter Metrics = new(SourceName);
     static readonly Histogram<int> EmbeddingTokenCount = Metrics.CreateHistogram<int>("embedding_token_count", "token", "Total embedding tokens");
+    static readonly Histogram<double> EmbeddingTokensPerSecond = Metrics.CreateHistogram<double>("embedding_tokens_per_sec", "sec", "Embedding tokens per second");
 
     public static void RecordEmbeddingTokens(int tokens, int textListCount, string modelName)
     {
@@ -16,6 +17,13 @@ public static class DiagnosticServices
         var textListCountTag = new KeyValuePair<string, object?>("textListCount", textListCount);
         var timestampTag = new KeyValuePair<string, object?>("timestampTag", DateTime.UtcNow);
         EmbeddingTokenCount.Record(tokens, modelTag, textListCountTag, timestampTag);
+    }
+
+    public static void RecordEmbeddingTokensPerSecond(double tokensPerSecond, int textListCount, string modelName)
+    {
+        var modelTag = new KeyValuePair<string, object?>("model", modelName);
+        var textListCountTag = new KeyValuePair<string, object?>("textListCount", textListCount);
+        EmbeddingTokensPerSecond.Record(tokensPerSecond, modelTag, textListCountTag);
     }
 }
 

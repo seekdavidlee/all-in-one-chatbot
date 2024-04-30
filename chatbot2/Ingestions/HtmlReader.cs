@@ -2,6 +2,7 @@
 using chatbot2.Configuration;
 using chatbot2.Logging;
 using HtmlAgilityPack;
+using Microsoft.Extensions.Logging;
 
 namespace chatbot2.Ingestions;
 
@@ -10,11 +11,13 @@ public class HtmlReader
     private readonly string pageContentXPath;
     private readonly Dictionary<string, BlobContainerClient> containerClients = [];
     private readonly IConfig config;
+    private readonly ILogger logger;
 
-    public HtmlReader(IConfig config)
+    public HtmlReader(IConfig config, ILogger logger)
     {
         pageContentXPath = Environment.GetEnvironmentVariable("PageContentXPath") ?? throw new Exception("Missing PageContentXPath");
         this.config = config;
+        this.logger = logger;
     }
 
     public async Task<(List<Page> Pages, List<PageLogEntry> Logs)> ReadBlobsAsync(string sourceDirectory, CancellationToken cancellationToken)
@@ -40,6 +43,12 @@ public class HtmlReader
             {
                 return (pages, logs);
             }
+
+            if (!blob.Name.EndsWith(".htm"))
+            {
+                continue;
+            }
+
             var bc = new BlobClient(config.AzureStorageConnectionString, containerName, blob.Name);
             var content = await bc.DownloadContentAsync(cancellationToken);
             using var reader = new StreamReader(content.Value.Content.ToStream());
@@ -54,6 +63,9 @@ public class HtmlReader
         }
         readBlobs?.AddTag("totalBlobs", totalBlobs);
         readBlobs?.AddTag("totalBlobsWithValidContent", totalBlobsWithValidContent);
+
+        logger.LogInformation("{blobSource} Total: {totalFiles} Valid Total: {totalFilesWithValidContent}", sourceDirectory, totalBlobs, totalBlobsWithValidContent);
+
         return (pages, logs);
     }
 
@@ -69,6 +81,9 @@ public class HtmlReader
 
         readBlobs?.AddTag("totalFiles", stats.Total);
         readBlobs?.AddTag("totalFilesWithValidContent", stats.TotalValidContent);
+
+        logger.LogInformation("{fileSource} Total: {totalFiles} Valid Total: {totalFilesWithValidContent}", sourceDirectory, stats.Total, stats.TotalValidContent);
+
         return (pages, logs);
     }
 

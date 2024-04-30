@@ -4,6 +4,7 @@ using Azure.AI.OpenAI;
 using chatbot2.Configuration;
 using chatbot2.Ingestions;
 using chatbot2.Logging;
+using System.Diagnostics;
 
 namespace chatbot2.Embeddings;
 
@@ -71,9 +72,13 @@ public class AzureOpenAIEmbedding : IEmbedding
                 var (Client, Index) = GetNextClient();
 
                 var deployment = deploymentModels[Index];
+                Stopwatch sw = new();
+                sw.Start();
                 var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deployment, textList), cancellationToken);
+                sw.Stop();
 
                 DiagnosticServices.RecordEmbeddingTokens(response.Value.Usage.TotalTokens, textList.Length, deployment);
+                DiagnosticServices.RecordEmbeddingTokensPerSecond(response.Value.Usage.TotalTokens / sw.Elapsed.TotalSeconds, textList.Length, deployment);
 
                 this.ingestionReporter.IncrementEmbeddingTokensProcessed(response.Value.Usage.TotalTokens);
                 return response.Value.Data.Select(x => x.Embedding.ToArray()).ToList();

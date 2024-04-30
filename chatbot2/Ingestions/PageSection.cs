@@ -27,6 +27,9 @@ public class PageSection
     public void Process()
     {
         var currrent = node;
+
+        List<string> h3Contents = [];
+
         StringBuilder sb = new();
         if (reference is not null)
         {
@@ -34,6 +37,8 @@ public class PageSection
         }
 
         bool firstStopTag = true;
+        string? h3 = null;
+        StringBuilder h3Sb = new();
         while (true)
         {
             if (currrent is not null)
@@ -41,6 +46,25 @@ public class PageSection
                 if (currrent.Name == stopTag && !firstStopTag)
                 {
                     break;
+                }
+
+                if (currrent.Name == "h3")
+                {
+                    if (h3 is not null)
+                    {
+                        StringBuilder curh3Sb = new();
+                        curh3Sb.AppendLine(reference);
+                        curh3Sb.AppendLine(converter.Convert(currrent.OuterHtml));
+                        curh3Sb.AppendLine(h3Sb.ToString());
+                        h3Contents.Add(curh3Sb.ToString());
+                        h3Sb.Clear();
+                    }
+                    h3 = currrent.InnerText;
+                }
+
+                if (h3 is not null)
+                {
+                    h3Sb.AppendLine(converter.Convert(converter.Convert(currrent.OuterHtml)));
                 }
 
                 firstStopTag = false;
@@ -54,15 +78,38 @@ public class PageSection
             }
         }
 
-        var id = $"{idPrefix}/{textChunks.Count}";
-        var textChunk = new TextChunk(id, sb.ToString());
-
-        if (pageContext.PagePath is not null)
+        if (h3Sb.Length > 0)
         {
-            textChunk.MetaDatas.Add("PAGE_PATH", pageContext.PagePath);
+            h3Contents.Add(h3Sb.ToString());
         }
 
-        textChunks.Add(textChunk);
+        if (h3Contents.Count > 1)
+        {
+            foreach (var content in h3Contents)
+            {
+                var id = $"{idPrefix}/{textChunks.Count}";
+                var textChunk = new TextChunk(id, content);
+
+                if (pageContext.PagePath is not null)
+                {
+                    textChunk.MetaDatas.Add("PAGE_PATH", pageContext.PagePath);
+                }
+
+                textChunks.Add(textChunk);
+            }
+        }
+        else
+        {
+            var id = $"{idPrefix}/{textChunks.Count}";
+            var textChunk = new TextChunk(id, sb.ToString());
+
+            if (pageContext.PagePath is not null)
+            {
+                textChunk.MetaDatas.Add("PAGE_PATH", pageContext.PagePath);
+            }
+
+            textChunks.Add(textChunk);
+        }
     }
 
     public List<TextChunk> TextChunks { get { return textChunks; } }
