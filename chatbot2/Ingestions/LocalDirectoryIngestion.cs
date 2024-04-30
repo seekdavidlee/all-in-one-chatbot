@@ -46,6 +46,8 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
                 return;
             }
 
+            int size = 0;
+            List<TextChunk> chunks = new();
             foreach (var page in Pages)
             {
                 if (cancellationToken.IsCancellationRequested)
@@ -62,7 +64,26 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
 
                 totalRecords += page.Sections.Sum(x => x.TextChunks.Count);
 
-                await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, page, cancellationToken));
+                foreach (var section in page.Sections)
+                {
+                    foreach (var txtChunk in section.TextChunks)
+                    {
+                        if (size + txtChunk.TokenCount > this.batchSize)
+                        {
+                            await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, chunks.ToArray(), cancellationToken));
+                            size = 0;
+                            chunks.Clear();
+                        }
+                        size += txtChunk.TokenCount;
+                        chunks.Add(txtChunk);
+
+                    }
+                }
+            }
+
+            if (chunks.Count > 0)
+            {
+                await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, [.. chunks], cancellationToken));
             }
 
             foreach (var log in Logs)
@@ -79,51 +100,33 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
         await sender.Completion;
     }
 
-    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, Page page, CancellationToken cancellationToken)
+    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, TextChunk[] chunkBatch, CancellationToken cancellationToken)
     {
         try
         {
-            List<TextChunk> chunks = [];
-            foreach (var section in page.Sections)
-            {
-                chunks.AddRange(section.TextChunks);
-            }
+            this.ingestionReporter.IncrementSearchModelsProcessing(chunkBatch.Length);
+            this.ingestionReporter.IncrementEmbeddingHttpRequest();
+            var floatsList = await embedding.GetEmbeddingsAsync(chunkBatch.Select(
+                x => x.Text ?? throw new Exception("text is null")).ToArray(), cancellationToken);
 
-            int totalProcess = 0;
-            for (int x = 0; x < chunks.Count; x += batchSize)
+            List<SearchModel> models = [];
+            for (int i = 0; i < chunkBatch.Length; i++)
             {
-                var chunkBatch = chunks.Skip(x).Take(batchSize).ToArray();
-                this.ingestionReporter.IncrementSearchModelsProcessing(chunkBatch.Length);
-                this.ingestionReporter.IncrementEmbeddingHttpRequest();
-                var floatsList = await embedding.GetEmbeddingsAsync(chunkBatch.Select(
-                    x => x.Text ?? throw new Exception("text is null")).ToArray(), cancellationToken);
-
-                List<SearchModel> models = [];
-                for (int i = 0; i < chunkBatch.Length; i++)
+                var t = chunkBatch[i];
+                var m = new SearchModel
                 {
-                    var t = chunkBatch[i];
-                    var m = new SearchModel
-                    {
-                        Id = Guid.NewGuid().ToString(),
-                        Content = t.Text,
-                        MetaData = JsonSerializer.Serialize(t.MetaDatas),
-                        Filepath = t.Id,
-                        ContentVector = floatsList[i]
-                    };
+                    Id = Guid.NewGuid().ToString(),
+                    Content = t.Text,
+                    MetaData = JsonSerializer.Serialize(t.MetaDatas),
+                    Filepath = t.Id,
+                    ContentVector = floatsList[i]
+                };
 
-                    models.Add(m);
-                }
-
-                await vectorDb.ProcessAsync(models);
-                this.ingestionReporter.IncrementSearchModelsProcessed(models.Count);
-
-                totalProcess += models.Count;
+                models.Add(m);
             }
 
-            if (totalProcess != chunks.Count)
-            {
-                throw new Exception($"processed count mismatch: {totalProcess} != {chunks.Count}");
-            }
+            await vectorDb.ProcessAsync(models);
+            this.ingestionReporter.IncrementSearchModelsProcessed(models.Count);
         }
         catch (Exception ex)
         {
