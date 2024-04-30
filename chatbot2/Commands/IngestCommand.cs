@@ -1,4 +1,5 @@
-﻿using chatbot2.Ingestions;
+﻿using chatbot2.Configuration;
+using chatbot2.Ingestions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks.Dataflow;
@@ -10,6 +11,7 @@ public class IngestCommand : ICommandAction
     private readonly IEnumerable<IVectorDbIngestion> vectorDbIngestions;
     private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<IngestCommand> logger;
+    private readonly IConfig config;
     private readonly IVectorDb vectorDb;
     private readonly IEmbedding embedding;
     private readonly int reportEveryXSeconds = 10;
@@ -17,11 +19,13 @@ public class IngestCommand : ICommandAction
         IEnumerable<IVectorDb> vectorDbs,
         IEnumerable<IEmbedding> embeddings,
         IngestionReporter ingestionReporter,
-        ILogger<IngestCommand> logger)
+        ILogger<IngestCommand> logger,
+        IConfig config)
     {
         this.vectorDbIngestions = vectorDbIngestions;
         this.ingestionReporter = ingestionReporter;
         this.logger = logger;
+        this.config = config;
         vectorDb = vectorDbs.GetSelectedVectorDb();
         embedding = embeddings.GetSelectedEmbedding();
 
@@ -45,7 +49,7 @@ public class IngestCommand : ICommandAction
     {
         await vectorDb.InitAsync();
 
-        var sender = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(cancellationToken, vectorDbIngestions.Count()));
+        var sender = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken, vectorDbIngestions.Count()));
 
         var started = DateTime.UtcNow;
         var timer = new Timer((o) => this.ingestionReporter.Report(),

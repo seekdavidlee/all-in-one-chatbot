@@ -87,7 +87,6 @@ public class AzureOpenAIEmbedding : IEmbedding
             }
             catch (RequestFailedException ex)
             {
-                this.ingestionReporter.IncrementSearchModelsErrors();
                 if (retry == maxRetry || ex.Status != 429 || cancellationToken.IsCancellationRequested)
                 {
                     throw;

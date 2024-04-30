@@ -1,4 +1,5 @@
-﻿using chatbot2.Evals;
+﻿using chatbot2.Configuration;
+using chatbot2.Evals;
 using chatbot2.Inferences;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -14,19 +15,22 @@ public class EvaluationCommand : ICommandAction
     private readonly EvaluationMetricWorkflow evaluationMetricWorkflow;
     private readonly InferenceWorkflow inferenceWorkflow;
     private readonly ILogger<EvaluationCommand> logger;
+    private readonly IConfig cbConfig;
 
     public EvaluationCommand(
         ReportRepository reportRepository,
         GroundTruthIngestion groundTruthIngestion,
         EvaluationMetricWorkflow evaluationMetricWorkflow,
         InferenceWorkflow inferenceWorkflow,
-        ILogger<EvaluationCommand> logger)
+        ILogger<EvaluationCommand> logger,
+        IConfig cbConfig)
     {
         this.reportRepository = reportRepository;
         this.groundTruthIngestion = groundTruthIngestion;
         this.evaluationMetricWorkflow = evaluationMetricWorkflow;
         this.inferenceWorkflow = inferenceWorkflow;
         this.logger = logger;
+        this.cbConfig = cbConfig;
     }
 
     public string Name => "evals";
@@ -79,7 +83,7 @@ public class EvaluationCommand : ICommandAction
 
         logger.LogInformation("starting evaluation runs: {path}", path);
 
-        var blocks = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(cancellationToken));
+        var blocks = new ActionBlock<Func<Task>>((action) => action(), cbConfig.GetDataflowOptions(cancellationToken));
 
         foreach (var group in groups)
         {

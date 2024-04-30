@@ -10,27 +10,17 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
     private readonly IngestionReporter ingestionReporter;
     private readonly IConfig config;
     private readonly ILogger<LocalDirectoryIngestion> logger;
-    private readonly int batchSize = 30;
 
     public LocalDirectoryIngestion(IngestionReporter ingestionReporter, IConfig config, ILogger<LocalDirectoryIngestion> logger)
     {
         this.ingestionReporter = ingestionReporter;
         this.config = config;
         this.logger = logger;
-
-        var ingestionBatchSize = Environment.GetEnvironmentVariable("IngestionBatchSize");
-        if (ingestionBatchSize is not null)
-        {
-            if (int.TryParse(ingestionBatchSize, out int batchSize))
-            {
-                this.batchSize = batchSize;
-            }
-        }
     }
 
     public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
     {
-        var sender = new ActionBlock<Func<Task>>((action) => action(), Util.GetDataflowOptions(cancellationToken));
+        var sender = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken));
         var dataSourcePathsStr = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths"));
         bool isBlob = dataSourcePathsStr.StartsWith(Util.BlobPrefix);
         string[] dataSourcePaths = (isBlob ? dataSourcePathsStr[Util.BlobPrefix.Length..] : dataSourcePathsStr).Split(',');
@@ -66,7 +56,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
                 {
                     foreach (var txtChunk in section.TextChunks)
                     {
-                        if (size + txtChunk.TokenCount > this.batchSize)
+                        if (size + txtChunk.TokenCount > this.config.IngestionBatchSize)
                         {
                             await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, [.. chunks], cancellationToken));
                             size = 0;
@@ -123,12 +113,21 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
                 models.Add(m);
             }
 
-            await vectorDb.ProcessAsync(models);
-            this.ingestionReporter.IncrementSearchModelsProcessed(models.Count);
+            var (successCount, errorCount) = await vectorDb.ProcessAsync(models);
+            if (successCount > 0)
+            {
+                this.ingestionReporter.IncrementSearchModelsProcessed(successCount);
+            }
+            if (errorCount > 0)
+            {
+                this.ingestionReporter.IncrementSearchModelsErrored(errorCount);
+            }
+
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "error processing page");
+            logger.LogError(ex, "error processing chunkBatch");
+            this.ingestionReporter.IncrementSearchModelsErrored(chunkBatch.Length);
         }
     }
 }

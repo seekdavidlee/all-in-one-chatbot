@@ -4,6 +4,7 @@ using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using chatbot2.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace chatbot2.VectorDbs;
@@ -15,8 +16,9 @@ public class AzureAISearch : IVectorDb
     private readonly SearchIndexClient searchIndexClient;
     private readonly IEmbedding embedding;
     private readonly IConfig config;
+    private readonly ILogger<AzureAISearch> logger;
 
-    public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config)
+    public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config, ILogger<AzureAISearch> logger)
     {
         embedding = embeddings.GetSelectedEmbedding();
         collectionName = Environment.GetEnvironmentVariable("CollectionName") ?? throw new Exception("Missing CollectionName");
@@ -25,6 +27,7 @@ public class AzureAISearch : IVectorDb
         searchIndexClient = new(azureSearchEndpoint, keyCredentials);
         searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
         this.config = config;
+        this.logger = logger;
     }
 
     public Task DeleteAsync()
@@ -53,10 +56,26 @@ public class AzureAISearch : IVectorDb
         await searchIndexClient.CreateOrUpdateIndexAsync(searchIndex);
     }
 
-    public Task ProcessAsync(IEnumerable<SearchModel> models)
+    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> models)
     {
         var batch = IndexDocumentsBatch.Upload(models);
-        return searchClient.IndexDocumentsAsync(batch);
+        var response = await searchClient.IndexDocumentsAsync(batch);
+
+        int error = 0;
+        int success = 0;
+        foreach (var r in response.Value.Results)
+        {
+            if (r.Succeeded)
+            {
+                success++;
+            }
+            else
+            {
+                error++;
+                logger.LogError("Failed to index document: {documentIndexError}", r.ErrorMessage);
+            }
+        }
+        return (success, error);
     }
 
     public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)

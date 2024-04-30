@@ -13,7 +13,7 @@ namespace chatbot2.Logging;
 public static class Extensions
 {
     private readonly static string serviceName = Assembly.GetExecutingAssembly().GetName().Name ?? "botapp";
-    public static (TracerProvider, MeterProvider) AddDiagnosticsServices(this ServiceCollection services, Config config, string sourceName)
+    public static (TracerProvider, MeterProvider) AddDiagnosticsServices(this ServiceCollection services, IConfig config, string sourceName)
     {
 
         services.AddLogging(c =>

@@ -17,6 +17,8 @@ public class Config : IConfig
         this.LogLevel = this.config.Get<string>("LogLevel").AsString(() => "Information");
         this.IngestionTypes = this.config.Get("IngestionTypes", (list) => list is null ? [] : list.Split(','));
         this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
+        this.Concurrency = this.config.Get<int>("Concurrency", int.Parse);
+        this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", int.Parse);
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -30,6 +32,10 @@ public class Config : IConfig
 
     public int TextEmbeddingVectorDimension { get; }
 
+    public int IngestionBatchSize { get; }
+
+    public int Concurrency { get; }
+
     public void Validate()
     {
         this.config.Optional("AzureOpenAIEmbeddings", this.AzureOpenAIEmbeddings, hideValue: true);
@@ -40,6 +46,8 @@ public class Config : IConfig
         this.config.Require("OpenTelemetryConnectionString", this.OpenTelemetryConnectionString, hideValue: false);
         this.config.Require("IngestionTypes", this.IngestionTypes, hideValue: false);
         this.config.Require("LogLevel", this.LogLevel, hideValue: false);
-        this.config.Require("TextEmbeddingVectorDimension", this.LogLevel, hideValue: false);
+        this.config.Require("TextEmbeddingVectorDimension", this.TextEmbeddingVectorDimension, hideValue: false);
+        this.config.Require("Concurrency", this.Concurrency, hideValue: false);
+        this.config.Require("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
     }
 }

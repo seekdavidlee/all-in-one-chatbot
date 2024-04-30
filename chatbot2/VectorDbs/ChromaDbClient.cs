@@ -44,19 +44,22 @@ public class ChromaDbClient : IVectorDb, IDisposable
             await client.CreateCollectionAsync(collectionName);
     }
 
-    public async Task ProcessAsync(IEnumerable<SearchModel> searchModels)
+    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> searchModels)
     {
         if (collectionClient is null)
         {
             throw new Exception("CollectionClient is not initialized!");
         }
 
+        int error = 0;
+        int success = 0;
         foreach (var model in searchModels)
         {
             if (model.Id is null ||
                 model.ContentVector is null ||
                 model.Content is null)
             {
+                error++;
                 continue;
             }
 
@@ -64,7 +67,10 @@ public class ChromaDbClient : IVectorDb, IDisposable
                 ids: [model.Id],
                 embeddings: [model.ContentVector],
                 documents: [model.Content]);
+            success++;
         }
+
+        return (success, error);
     }
 
     public Task DeleteAsync()
