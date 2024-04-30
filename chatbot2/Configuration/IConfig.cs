@@ -8,5 +8,6 @@ public interface IConfig
     string CustomAuthProviderUrl { get; }
     string CustomAuthProviderContent { get; }
     string AzureStorageConnectionString { get; }
+    int TextEmbeddingVectorDimension { get; }
     void Validate();
 }

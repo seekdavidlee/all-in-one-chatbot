@@ -14,6 +14,8 @@ public class AzureAISearch : IVectorDb
     private readonly SearchClient searchClient;
     private readonly SearchIndexClient searchIndexClient;
     private readonly IEmbedding embedding;
+    private readonly IConfig config;
+
     public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config)
     {
         embedding = embeddings.GetSelectedEmbedding();
@@ -22,6 +24,7 @@ public class AzureAISearch : IVectorDb
         AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
         searchIndexClient = new(azureSearchEndpoint, keyCredentials);
         searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
+        this.config = config;
     }
 
     public Task DeleteAsync()
@@ -29,7 +32,6 @@ public class AzureAISearch : IVectorDb
         return searchIndexClient.DeleteIndexAsync(collectionName);
     }
 
-    const int VECTOR_DIMENSION = 1536;
     const string VECTOR_PROFILE_NAME = "my-profile-config";
     const string VECTOR_ALG_NAME = "my-alg-config";
 
@@ -37,7 +39,7 @@ public class AzureAISearch : IVectorDb
     {
         var searchIndex = new SearchIndex(collectionName);
         searchIndex.Fields.Add(new SimpleField("id", SearchFieldDataType.String) { IsKey = true });
-        searchIndex.Fields.Add(new VectorSearchField("contentVector", VECTOR_DIMENSION, VECTOR_PROFILE_NAME));
+        searchIndex.Fields.Add(new VectorSearchField("contentVector", config.TextEmbeddingVectorDimension, VECTOR_PROFILE_NAME));
         searchIndex.Fields.Add(new SimpleField("meta_json_string", SearchFieldDataType.String));
         searchIndex.Fields.Add(new SearchField("title", SearchFieldDataType.String) { IsSearchable = true });
         searchIndex.Fields.Add(new SimpleField("filepath", SearchFieldDataType.String));

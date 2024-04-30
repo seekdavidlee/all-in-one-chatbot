@@ -16,6 +16,7 @@ public class Config : IConfig
         this.OpenTelemetryConnectionString = this.config.Get<string>("OpenTelemetryConnectionString");
         this.LogLevel = this.config.Get<string>("LogLevel").AsString(() => "Information");
         this.IngestionTypes = this.config.Get("IngestionTypes", (list) => list is null ? [] : list.Split(','));
+        this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -27,6 +28,8 @@ public class Config : IConfig
     public string[] IngestionTypes { get; }
     public string LogLevel { get; }
 
+    public int TextEmbeddingVectorDimension { get; }
+
     public void Validate()
     {
         this.config.Optional("AzureOpenAIEmbeddings", this.AzureOpenAIEmbeddings, hideValue: true);
@@ -37,5 +40,6 @@ public class Config : IConfig
         this.config.Require("OpenTelemetryConnectionString", this.OpenTelemetryConnectionString, hideValue: false);
         this.config.Require("IngestionTypes", this.IngestionTypes, hideValue: false);
         this.config.Require("LogLevel", this.LogLevel, hideValue: false);
+        this.config.Require("TextEmbeddingVectorDimension", this.LogLevel, hideValue: false);
     }
 }
