@@ -40,8 +40,18 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
         {
             logger.LogDebug("processing data source: {dataSourcePath}...", dataSourcePath);
             var (Pages, Logs) = isBlob ? await htmlReader.ReadBlobsAsync(dataSourcePath, cancellationToken) : await htmlReader.ReadFilesAsync(dataSourcePath, cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
             foreach (var page in Pages)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
                 if (page.Sections.Count == 0)
                 {
                     logger.LogWarning("page has no sections: {pagePath}", page.Context.PagePath);

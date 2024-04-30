@@ -7,7 +7,7 @@ namespace chatbot2.Ingestions;
 public class HtmlReader
 {
     private readonly string pageContentXPath;
-    private readonly Dictionary<string, BlobContainerClient> containerClients = new();
+    private readonly Dictionary<string, BlobContainerClient> containerClients = [];
     private readonly IConfig config;
 
     public HtmlReader(IConfig config)
@@ -48,20 +48,28 @@ public class HtmlReader
     {
         var logs = new List<PageLogEntry>();
         List<Page> pages = [];
-        await InternalReadFilesAsync(sourceDirectory, pages, logs);
+        await InternalReadFilesAsync(sourceDirectory, pages, logs, cancellationToken);
         return (pages, logs);
     }
 
-    private async Task InternalReadFilesAsync(string sourceDirectory, List<Page> pages, List<PageLogEntry> logs)
+    private async Task InternalReadFilesAsync(string sourceDirectory, List<Page> pages, List<PageLogEntry> logs, CancellationToken cancellationToken)
     {
         var dirs = Directory.GetDirectories(sourceDirectory);
         foreach (var dir in dirs)
         {
-            await InternalReadFilesAsync(dir, pages, logs);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            await InternalReadFilesAsync(dir, pages, logs, cancellationToken);
         }
 
         foreach (var filePath in Directory.GetFiles(sourceDirectory, "*.htm"))
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             var page = await ReadFileAsync(filePath, logs);
             if (page is null)
             {

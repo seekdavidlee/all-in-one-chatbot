@@ -11,7 +11,7 @@ public class LocalEmbedding : IEmbedding
 
     public async Task<List<float[]>> GetEmbeddingsAsync(string[] textList, CancellationToken cancellationToken)
     {
-        await semaphore.WaitAsync();
+        await semaphore.WaitAsync(cancellationToken);
         try
         {
             if (modelPath is null)
@@ -29,7 +29,7 @@ public class LocalEmbedding : IEmbedding
         {
             semaphore.Release();
         }
-        List<float[]> list = new();
+        List<float[]> list = [];
         foreach (var text in textList)
         {
             list.Add(await embedder.GetEmbeddings(text, cancellationToken));
