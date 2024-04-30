@@ -16,6 +16,7 @@ public class IngestionReporter
     private int searchModelsProcessing;
     private int searchModelsErrors;
     private int embeddingTokensProcessed;
+    private int interval;
     private DateTime lastReportTime = DateTime.UtcNow;
     private readonly DateTime reporterStartTime = DateTime.UtcNow;
 
@@ -45,6 +46,8 @@ public class IngestionReporter
     {
         lock (reportLock)
         {
+            Interlocked.Increment(ref interval);
+
             var totalSpan = DateTime.UtcNow - reporterStartTime;
             var total = Interlocked.Add(ref totalSearchModelsProcessed, 0);
             double perSec = total / totalSpan.TotalSeconds;

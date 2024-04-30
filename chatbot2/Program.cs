@@ -34,8 +34,15 @@ services.AddSingleton<IEmbedding, AzureOpenAIEmbedding>();
 services.AddSingleton<IVectorDb, AzureAISearch>();
 services.AddSingleton<ILanguageModel, AzureOpenAIClient>();
 services.AddSingleton<IRestClientAuthHeaderProvider, CustomAuthProvider>();
-services.AddSingleton<IVectorDbIngestion, LocalDirectoryIngestion>();
-services.AddSingleton<IVectorDbIngestion, RestApiIngestion>();
+
+foreach (var ingestionType in config.IngestionTypes)
+{
+    if (ingestionType is null)
+    {
+        continue;
+    }
+    services.AddSingleton(typeof(IVectorDbIngestion), Type.GetType(ingestionType) ?? throw new Exception($"invalid IVectorDbIngestion type {ingestionType}"));
+}
 services.AddSingleton<ICommandAction, ChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();

@@ -15,6 +15,7 @@ public class Config : IConfig
         this.AzureStorageConnectionString = this.config.GetSecret<string>("AzureStorageConnectionString").GetAwaiter().GetResult();
         this.OpenTelemetryConnectionString = this.config.Get<string>("OpenTelemetryConnectionString");
         this.LogLevel = this.config.Get<string>("LogLevel").AsString(() => "Information");
+        this.IngestionTypes = this.config.Get("IngestionTypes", (list) => list is null ? [] : list.Split(','));
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -23,6 +24,7 @@ public class Config : IConfig
     public string CustomAuthProviderContent { get; }
     public string AzureStorageConnectionString { get; }
     public string OpenTelemetryConnectionString { get; }
+    public string[] IngestionTypes { get; }
     public string LogLevel { get; }
 
     public void Validate()
@@ -33,6 +35,7 @@ public class Config : IConfig
         this.config.Optional("CustomAuthProviderUrl", this.CustomAuthProviderUrl, hideValue: true);
         this.config.Optional("AzureStorageConnectionString", this.AzureStorageConnectionString, hideValue: true);
         this.config.Require("OpenTelemetryConnectionString", this.OpenTelemetryConnectionString, hideValue: false);
+        this.config.Require("IngestionTypes", this.IngestionTypes, hideValue: false);
         this.config.Require("LogLevel", this.LogLevel, hideValue: false);
     }
 }

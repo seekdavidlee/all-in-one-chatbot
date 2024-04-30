@@ -43,7 +43,8 @@ public class HtmlReader
             var bc = new BlobClient(config.AzureStorageConnectionString, containerName, blob.Name);
             var content = await bc.DownloadContentAsync(cancellationToken);
             using var reader = new StreamReader(content.Value.Content.ToStream());
-            var page = GetPage(await reader.ReadToEndAsync(cancellationToken), bc.Uri.ToString(), logs);
+            var path = bc.Uri.ToString();
+            var page = GetPage(await reader.ReadToEndAsync(cancellationToken), path[..path.IndexOf('?')], logs);
             if (page is not null)
             {
                 pages.Add(page);
@@ -58,7 +59,7 @@ public class HtmlReader
 
     public async Task<(List<Page> Pages, List<PageLogEntry> Logs)> ReadFilesAsync(string sourceDirectory, CancellationToken cancellationToken)
     {
-        using var readBlobs = DiagnosticServices.Source.StartActivity("ReadBlobsAsync");
+        using var readBlobs = DiagnosticServices.Source.StartActivity("ReadFilesAsync");
         readBlobs?.AddTag("sourceDirectory", sourceDirectory);
 
         var stats = new FileReadStats();
