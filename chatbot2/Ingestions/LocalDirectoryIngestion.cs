@@ -35,7 +35,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
         bool isBlob = dataSourcePathsStr.StartsWith(Util.BlobPrefix);
         string[] dataSourcePaths = (isBlob ? dataSourcePathsStr[Util.BlobPrefix.Length..] : dataSourcePathsStr).Split(',');
         var htmlReader = new HtmlReader(this.config, this.logger);
-
+        int totalRecords = 0;
         foreach (var dataSourcePath in dataSourcePaths)
         {
             logger.LogInformation("processing data source: {dataSourcePath}...", dataSourcePath);
@@ -60,6 +60,8 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
 
                 logger.LogDebug("processing page: {pagePath}...", page.Context.PagePath);
 
+                totalRecords += page.Sections.Sum(x => x.TextChunks.Count);
+
                 await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, page, cancellationToken));
             }
 
@@ -69,6 +71,9 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
             }
         }
 
+        logger.LogInformation("total records: {totalRecordsToProcess} to process", totalRecords);
+
+        this.ingestionReporter.Init(totalRecords);
 
         sender.Complete();
         await sender.Completion;
@@ -89,6 +94,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
             {
                 var chunkBatch = chunks.Skip(x).Take(batchSize).ToArray();
                 this.ingestionReporter.IncrementSearchModelsProcessing(chunkBatch.Length);
+                this.ingestionReporter.IncrementEmbeddingHttpRequest();
                 var floatsList = await embedding.GetEmbeddingsAsync(chunkBatch.Select(
                     x => x.Text ?? throw new Exception("text is null")).ToArray(), cancellationToken);
 

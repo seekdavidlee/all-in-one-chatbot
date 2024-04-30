@@ -16,9 +16,11 @@ public class IngestionReporter
     private int searchModelsProcessing;
     private int searchModelsErrors;
     private int embeddingTokensProcessed;
+    private int embeddingHttpRequests;
     private int interval;
+    private int totalRecords;
     private DateTime lastReportTime = DateTime.UtcNow;
-    private readonly DateTime reporterStartTime = DateTime.UtcNow;
+    private DateTime reporterStartTime = DateTime.UtcNow;
 
     public int IncrementSearchModelsProcessing(int count)
     {
@@ -29,6 +31,11 @@ public class IngestionReporter
     {
         Interlocked.Add(ref totalSearchModelsProcessed, count);
         return Interlocked.Add(ref searchModelsProcessed, count);
+    }
+
+    public int IncrementEmbeddingHttpRequest()
+    {
+        return Interlocked.Increment(ref embeddingHttpRequests);
     }
 
     public int IncrementEmbeddingTokensProcessed(int count)
@@ -42,6 +49,12 @@ public class IngestionReporter
         return Interlocked.Increment(ref searchModelsErrors);
     }
 
+    public void Init(int totalRecords)
+    {
+        reporterStartTime = DateTime.UtcNow;
+        this.totalRecords = totalRecords;
+    }
+
     public void Report()
     {
         lock (reportLock)
@@ -53,8 +66,18 @@ public class IngestionReporter
             double perSec = total / totalSpan.TotalSeconds;
             logger.LogInformation("SearchModel Total: {totalSearchModelsProcessed}, AvgRate: {totalSearchModelsProcessedAvg:0.00}/sec", total, perSec);
 
+            var allTotalRecords = Interlocked.Add(ref totalRecords, 0);
+            if (allTotalRecords > 0)
+            {
+                double progress = (total / allTotalRecords) * 100;
+                logger.LogInformation("Progress: {progress}, Interval: {progressInterval}", progress, Interlocked.Add(ref interval, 0));
+            }
+
             double totalSeconds = (DateTime.UtcNow - lastReportTime).TotalSeconds;
             lastReportTime = DateTime.UtcNow;
+
+            var embeddingRps = Interlocked.Add(ref embeddingHttpRequests, 0) / totalSeconds;
+            logger.LogInformation("embedding http requests/sec: {embeddingRps}", embeddingRps);
 
             int intervalTotal = Interlocked.Add(ref searchModelsProcessed, 0);
             perSec = intervalTotal / totalSeconds;
@@ -74,6 +97,7 @@ public class IngestionReporter
             Interlocked.Exchange(ref searchModelsProcessed, 0);
             Interlocked.Exchange(ref searchModelsErrors, 0);
             Interlocked.Exchange(ref embeddingTokensProcessed, 0);
+            Interlocked.Exchange(ref embeddingHttpRequests, 0);
         }
     }
 }

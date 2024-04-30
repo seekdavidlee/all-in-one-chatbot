@@ -66,6 +66,7 @@ foreach (var command in provider.GetServices<ICommandAction>())
 {
     if (command.Name == cmdName)
     {
+        Console.WriteLine("Started: {0}", DateTime.UtcNow);
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("press Ctrl+C to stop...");
         Console.ResetColor();
