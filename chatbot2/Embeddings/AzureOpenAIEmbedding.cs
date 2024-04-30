@@ -3,7 +3,7 @@ using Azure;
 using Azure.AI.OpenAI;
 using chatbot2.Configuration;
 using chatbot2.Ingestions;
-using chatbot2.Llms;
+using chatbot2.Logging;
 
 namespace chatbot2.Embeddings;
 
@@ -69,7 +69,13 @@ public class AzureOpenAIEmbedding : IEmbedding
             try
             {
                 var (Client, Index) = GetNextClient();
-                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deploymentModels[Index], textList), cancellationToken);
+
+                var deployment = deploymentModels[Index];
+                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deployment, textList), cancellationToken);
+
+                DiagnosticServices.RecordEmbeddingTokens(response.Value.Usage.TotalTokens, textList.Length, deployment);
+
+                this.ingestionReporter.IncrementEmbeddingTokensProcessed(response.Value.Usage.TotalTokens);
                 return response.Value.Data.Select(x => x.Embedding.ToArray()).ToList();
             }
             catch (RequestFailedException ex)

@@ -5,12 +5,13 @@ using chatbot2.Embeddings;
 using chatbot2.VectorDbs;
 using chatbot2.Llms;
 using chatbot2.Ingestions;
-using Microsoft.Extensions.Logging;
 using chatbot2.Commands;
 using chatbot2.Evals;
 using chatbot2.Inferences;
 using System.Diagnostics;
 using chatbot2.Configuration;
+using chatbot2.Logging;
+using Microsoft.Extensions.Logging;
 
 // add config
 var netConfig = new NetBricks.Config();
@@ -25,12 +26,6 @@ IConfiguration argsConfig = new ConfigurationBuilder()
 var services = new ServiceCollection();
 services.AddSingleton<IConfig>(config);
 services.AddHttpClient();
-services.AddLogging(c =>
-{
-    var level = Environment.GetEnvironmentVariable("LogLevel") ?? "Information";
-    c.SetMinimumLevel((LogLevel)Enum.Parse(typeof(LogLevel), level));
-    c.AddConsole();
-});
 
 services.AddSingleton<IEmbedding, LocalEmbedding>();
 services.AddSingleton<IVectorDb, ChromaDbClient>();
@@ -55,6 +50,8 @@ services.AddSingleton<FileCache>();
 services.AddSingleton<ReportRepository>();
 services.AddSingleton<EvaluationSummarizeWorkflow>();
 services.AddSingleton<IngestionReporter>();
+
+var (traceProvider, meterProvider) = services.AddDiagnosticsServices(config, DiagnosticServices.Source.Name);
 
 var cmdName = argsConfig["command"];
 var provider = services.BuildServiceProvider();
@@ -91,7 +88,11 @@ foreach (var command in provider.GetServices<ICommandAction>())
             sw.Stop();
         }
 
-        Console.WriteLine($"Operation '{command.Name}' completed in {sw.ElapsedMilliseconds}ms");
+        var logger = provider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
+
+        meterProvider.Dispose();
+        traceProvider.Dispose();
         return;
     }
 }

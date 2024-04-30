@@ -14,10 +14,7 @@ public class LocalEmbedding : IEmbedding
         await semaphore.WaitAsync(cancellationToken);
         try
         {
-            if (modelPath is null)
-            {
-                modelPath = Environment.GetEnvironmentVariable("EmbeddingFilePath") ?? throw new Exception("Missing EmbeddingFilePath!"); // change it to your own model path.
-            }
+            modelPath ??= Environment.GetEnvironmentVariable("EmbeddingFilePath") ?? throw new Exception("Missing EmbeddingFilePath!"); // change it to your own model path.
             if (embedder is null)
             {
                 var @params = new ModelParams(modelPath) { EmbeddingMode = true };
