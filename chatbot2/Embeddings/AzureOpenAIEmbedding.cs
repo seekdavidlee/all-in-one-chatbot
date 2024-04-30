@@ -77,8 +77,10 @@ public class AzureOpenAIEmbedding : IEmbedding
                 var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deployment, textList), cancellationToken);
                 sw.Stop();
 
-                DiagnosticServices.RecordEmbeddingTokens(response.Value.Usage.TotalTokens, textList.Length, deployment);
-                DiagnosticServices.RecordEmbeddingTokensPerSecond(response.Value.Usage.TotalTokens / sw.Elapsed.TotalSeconds, textList.Length, deployment);
+                DiagnosticServices.RecordEmbeddingTokens(
+                    response.Value.Usage.TotalTokens, sw.ElapsedMilliseconds, textList.Length, deployment);
+                DiagnosticServices.RecordEmbeddingTokensPerSecond(
+                    response.Value.Usage.TotalTokens / sw.Elapsed.TotalSeconds, sw.ElapsedMilliseconds, textList.Length, deployment);
 
                 this.ingestionReporter.IncrementEmbeddingTokensProcessed(response.Value.Usage.TotalTokens);
                 return response.Value.Data.Select(x => x.Embedding.ToArray()).ToList();
