@@ -15,5 +15,11 @@ public interface IConfig
     int Concurrency { get; }
     int IngestionBatchSize { get; }
     public int IngestionReportEveryXSeconds { get; }
+    string IngestionQueueName { get; }
+    string IngestionProcessorType { get; }
+    string IngestionQueueStorageName { get; }
+    string CollectionName { get; }
+    string AzureQueueConnectionString { get; }
+    string EmbeddingType { get; }
     void Validate();
 }

@@ -20,6 +20,12 @@ public class Config : IConfig
         this.Concurrency = this.config.Get<int>("Concurrency", int.Parse);
         this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", int.Parse);
         this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 5 : int.Parse(v));
+        this.IngestionQueueName = this.config.Get<string>("IngestionQueueName");
+        this.IngestionProcessorType = this.config.Get<string>("IngestionProcessorType");
+        this.IngestionQueueStorageName = this.config.Get<string>("IngestionQueueStorageName");
+        this.AzureQueueConnectionString = this.config.GetSecret<string>("AzureQueueConnectionString").GetAwaiter().GetResult();
+        this.CollectionName = this.config.Get<string>("CollectionName");
+        this.EmbeddingType = this.config.Get<string>("EmbeddingType");
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -28,6 +34,9 @@ public class Config : IConfig
     public string CustomAuthProviderContent { get; }
     public string AzureStorageConnectionString { get; }
     public string OpenTelemetryConnectionString { get; }
+
+    public string IngestionQueueName { get; }
+    public string AzureQueueConnectionString { get; }
     public string[] IngestionTypes { get; }
     public string LogLevel { get; }
 
@@ -38,6 +47,13 @@ public class Config : IConfig
     public int Concurrency { get; }
 
     public int IngestionReportEveryXSeconds { get; }
+    public string IngestionQueueStorageName { get; }
+
+    public string IngestionProcessorType { get; }
+
+    public string CollectionName { get; }
+
+    public string EmbeddingType { get; }
 
     public void Validate()
     {
@@ -53,5 +69,11 @@ public class Config : IConfig
         this.config.Require("Concurrency", this.Concurrency, hideValue: false);
         this.config.Require("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
         this.config.Require("IngestionReportEveryXSeconds", this.IngestionReportEveryXSeconds, hideValue: false);
+        this.config.Optional("IngestionQueueName", this.IngestionQueueName, hideValue: false);
+        this.config.Optional("IngestionProcessorType", this.IngestionProcessorType, hideValue: false);
+        this.config.Optional("AzureQueueConnectionString", this.AzureQueueConnectionString, hideValue: true);
+        this.config.Optional("IngestionQueueStorageName", this.IngestionQueueStorageName, hideValue: false);
+        this.config.Optional("CollectionName", this.CollectionName, hideValue: false);
+        this.config.Optional("EmbeddingType", this.EmbeddingType, hideValue: false);
     }
 }

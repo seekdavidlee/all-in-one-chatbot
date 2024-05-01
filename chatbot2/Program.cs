@@ -49,6 +49,7 @@ services.AddSingleton<ICommandAction, DeleteSearchCommand>();
 services.AddSingleton<ICommandAction, EvaluationCommand>();
 services.AddSingleton<ICommandAction, EvaluationSummarizeCommand>();
 services.AddSingleton<ICommandAction, ShowEvaluationMetricResultCommand>();
+services.AddSingleton<ICommandAction, ProcessQueueIngestionCommand>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
 services.AddSingleton<InferenceWorkflow>();
@@ -57,6 +58,8 @@ services.AddSingleton<FileCache>();
 services.AddSingleton<ReportRepository>();
 services.AddSingleton<EvaluationSummarizeWorkflow>();
 services.AddSingleton<IngestionReporter>();
+services.AddSingleton<IIngestionProcessor, QueueService>();
+services.AddSingleton<IIngestionProcessor, IngestionProcessor>();
 
 var (traceProvider, meterProvider) = services.AddDiagnosticsServices(config, DiagnosticServices.Source.Name);
 
