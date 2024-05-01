@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Blobs;
+using chatbot2.Configuration;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -9,9 +10,9 @@ public class ReportRepository
 {
     private readonly BlobContainerClient client;
 
-    public ReportRepository()
+    public ReportRepository(IConfig config)
     {
-        var connectionString = Environment.GetEnvironmentVariable("AzureStorageConnectionString") ?? throw new Exception("missing AzureStorageConnectionString");
+        var connectionString = config.AzureStorageConnectionString;
         var svc = new BlobServiceClient(connectionString);
         var containerName = Environment.GetEnvironmentVariable("AzureStorageContainerName") ?? throw new Exception("missing AzureStorageContainerName");
         client = svc.GetBlobContainerClient(containerName);

@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Headers;
+﻿using chatbot2.Configuration;
+using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace chatbot2.Ingestions;
@@ -6,15 +7,17 @@ namespace chatbot2.Ingestions;
 public class CustomAuthProvider : IRestClientAuthHeaderProvider
 {
     private readonly HttpClient httpClient;
+    private readonly IConfig config;
 
-    public CustomAuthProvider(HttpClient httpClient)
+    public CustomAuthProvider(HttpClient httpClient, IConfig config)
     {
         httpClient.BaseAddress = new Uri(Environment.GetEnvironmentVariable("CustomAuthProviderUrl") ?? throw new Exception("Missing CustomAuthProviderUrl"));
         this.httpClient = httpClient;
+        this.config = config;
     }
     public async Task<AuthenticationHeaderValue> GetAuthorizationHeader()
     {
-        var rawContent = Environment.GetEnvironmentVariable("CustomAuthProviderContent") ?? throw new Exception("Missing CustomAuthProviderContent");
+        var rawContent = this.config.CustomAuthProviderContent;
         var pairs = rawContent.Split(';').Select(x =>
         {
             var parts = x.Split('=');

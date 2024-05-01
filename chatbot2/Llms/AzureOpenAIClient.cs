@@ -1,11 +1,12 @@
 ﻿using Azure.AI.OpenAI;
+using chatbot2.Configuration;
 
 namespace chatbot2.Llms;
 
 public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
 {
     private readonly string deploymentName;
-    public AzureOpenAIClient()
+    public AzureOpenAIClient(IConfig config) : base(config)
     {
         deploymentName = Environment.GetEnvironmentVariable("AzureOpenAILLMDeploymentModel") ?? throw new Exception("Missing AzureOpenAILLMDeploymentModel!");
     }

@@ -5,24 +5,27 @@ using chatbot2.Embeddings;
 using chatbot2.VectorDbs;
 using chatbot2.Llms;
 using chatbot2.Ingestions;
-using Microsoft.Extensions.Logging;
 using chatbot2.Commands;
 using chatbot2.Evals;
 using chatbot2.Inferences;
 using System.Diagnostics;
+using chatbot2.Configuration;
+using chatbot2.Logging;
+using Microsoft.Extensions.Logging;
+
+// add config
+var netConfig = new NetBricks.Config();
+var config = new Config(netConfig);
+config.Validate();
 
 IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
+       .AddEnvironmentVariables()
        .Build();
 
 var services = new ServiceCollection();
+services.AddSingleton<IConfig>(config);
 services.AddHttpClient();
-services.AddLogging(c =>
-{
-    var level = Environment.GetEnvironmentVariable("LogLevel") ?? "Information";
-    c.SetMinimumLevel((LogLevel)Enum.Parse(typeof(LogLevel), level));
-    c.AddConsole();
-});
 
 services.AddSingleton<IEmbedding, LocalEmbedding>();
 services.AddSingleton<IVectorDb, ChromaDbClient>();
@@ -31,8 +34,15 @@ services.AddSingleton<IEmbedding, AzureOpenAIEmbedding>();
 services.AddSingleton<IVectorDb, AzureAISearch>();
 services.AddSingleton<ILanguageModel, AzureOpenAIClient>();
 services.AddSingleton<IRestClientAuthHeaderProvider, CustomAuthProvider>();
-services.AddSingleton<IVectorDbIngestion, LocalDirectoryIngestion>();
-services.AddSingleton<IVectorDbIngestion, RestApiIngestion>();
+
+foreach (var ingestionType in config.IngestionTypes)
+{
+    if (ingestionType is null)
+    {
+        continue;
+    }
+    services.AddSingleton(typeof(IVectorDbIngestion), Type.GetType(ingestionType) ?? throw new Exception($"invalid IVectorDbIngestion type {ingestionType}"));
+}
 services.AddSingleton<ICommandAction, ChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();
@@ -48,11 +58,15 @@ services.AddSingleton<ReportRepository>();
 services.AddSingleton<EvaluationSummarizeWorkflow>();
 services.AddSingleton<IngestionReporter>();
 
+var (traceProvider, meterProvider) = services.AddDiagnosticsServices(config, DiagnosticServices.Source.Name);
+
+var cmdName = argsConfig["command"];
 var provider = services.BuildServiceProvider();
 foreach (var command in provider.GetServices<ICommandAction>())
 {
-    if (command.Name == argsConfig["command"])
+    if (command.Name == cmdName)
     {
+        Console.WriteLine("Started: {0}", DateTime.UtcNow);
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("press Ctrl+C to stop...");
         Console.ResetColor();
@@ -60,6 +74,7 @@ foreach (var command in provider.GetServices<ICommandAction>())
         var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (s, e) =>
         {
+            Console.WriteLine("\nuser cancelled");
             e.Cancel = true;
             cts.Cancel();
         };
@@ -81,7 +96,11 @@ foreach (var command in provider.GetServices<ICommandAction>())
             sw.Stop();
         }
 
-        Console.WriteLine($"Operation '{command.Name}' completed in {sw.ElapsedMilliseconds}ms");
+        var logger = provider.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
+
+        meterProvider.Dispose();
+        traceProvider.Dispose();
         return;
     }
 }

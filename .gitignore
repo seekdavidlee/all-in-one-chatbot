@@ -6,3 +6,4 @@ obj
 launchsettings.json
 *.gguf
 data/
+*.csproj.user

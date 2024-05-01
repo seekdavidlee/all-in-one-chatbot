@@ -1,8 +1,10 @@
 ﻿
 using Azure;
 using Azure.AI.OpenAI;
+using chatbot2.Configuration;
 using chatbot2.Ingestions;
-using chatbot2.Llms;
+using chatbot2.Logging;
+using System.Diagnostics;
 
 namespace chatbot2.Embeddings;
 
@@ -13,9 +15,9 @@ public class AzureOpenAIEmbedding : IEmbedding
     private readonly IngestionReporter ingestionReporter;
     private readonly OpenAIClient[] openAIClients;
 
-    public AzureOpenAIEmbedding(IngestionReporter ingestionReporter)
+    public AzureOpenAIEmbedding(IngestionReporter ingestionReporter, IConfig config)
     {
-        var deploymentsStr = Environment.GetEnvironmentVariable("AzureOpenAIEmbeddings") ?? throw new Exception("Missing AzureOpenAIEmbeddings!");
+        var deploymentsStr = config.AzureOpenAIEmbeddings;
         var deployments = deploymentsStr.Split(';');
 
         deploymentModels = new string[deployments.Length];
@@ -68,12 +70,23 @@ public class AzureOpenAIEmbedding : IEmbedding
             try
             {
                 var (Client, Index) = GetNextClient();
-                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deploymentModels[Index], textList), cancellationToken);
+
+                var deployment = deploymentModels[Index];
+                Stopwatch sw = new();
+                sw.Start();
+                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deployment, textList), cancellationToken);
+                sw.Stop();
+
+                DiagnosticServices.RecordEmbeddingTokens(
+                    response.Value.Usage.TotalTokens, sw.ElapsedMilliseconds, textList.Length, deployment);
+                DiagnosticServices.RecordEmbeddingTokensPerSecond(
+                    response.Value.Usage.TotalTokens / sw.Elapsed.TotalSeconds, sw.ElapsedMilliseconds, textList.Length, deployment);
+
+                this.ingestionReporter.IncrementEmbeddingTokensProcessed(response.Value.Usage.TotalTokens);
                 return response.Value.Data.Select(x => x.Embedding.ToArray()).ToList();
             }
             catch (RequestFailedException ex)
             {
-                this.ingestionReporter.IncrementSearchModelsErrors();
                 if (retry == maxRetry || ex.Status != 429 || cancellationToken.IsCancellationRequested)
                 {
                     throw;

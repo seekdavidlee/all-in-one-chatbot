@@ -45,12 +45,7 @@ public class InferenceWorkflow
 
         var chatCompletionResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
 
-        var intentResponse = chatCompletionResponse.Text;
-        if (intentResponse is null)
-        {
-            throw new Exception("did not get response from llm");
-        }
-
+        var intentResponse = chatCompletionResponse.Text ?? throw new Exception("did not get response from llm");
         const string keywordMarker = "Single intents:";
         var findIndex = intentResponse.IndexOf(keywordMarker, StringComparison.OrdinalIgnoreCase);
         if (findIndex < 0)
@@ -60,12 +55,7 @@ public class InferenceWorkflow
         intentResponse = intentResponse[(findIndex + keywordMarker.Length)..];
         var lastIndex = intentResponse.IndexOf("]", 0, StringComparison.OrdinalIgnoreCase);
         intentResponse = intentResponse[..(lastIndex + 1)];
-        var parsedIntents = JsonSerializer.Deserialize<string[]>(intentResponse);
-        if (parsedIntents is null)
-        {
-            throw new Exception("response did not deserialize properly");
-        }
-
+        var parsedIntents = JsonSerializer.Deserialize<string[]>(intentResponse) ?? throw new Exception("response did not deserialize properly");
         if (parsedIntents.Length == 0)
         {
             parsedIntents = [userInput];

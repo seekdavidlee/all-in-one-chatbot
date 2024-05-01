@@ -6,23 +6,15 @@ namespace chatbot2.Embeddings;
 public class LocalEmbedding : IEmbedding
 {
     private LLamaEmbedder? embedder;
-    private readonly string? modelPath;
+    private string? modelPath;
     private readonly SemaphoreSlim semaphore = new(1, 1);
-
-    public LocalEmbedding()
-    {
-        modelPath = Environment.GetEnvironmentVariable("EmbeddingFilePath") ?? throw new Exception("Missing EmbeddingFilePath!"); // change it to your own model path.
-    }
 
     public async Task<List<float[]>> GetEmbeddingsAsync(string[] textList, CancellationToken cancellationToken)
     {
-        if (modelPath is null)
-        {
-            throw new Exception("Missing EmbeddingFilePath!");
-        }
-        await semaphore.WaitAsync();
+        await semaphore.WaitAsync(cancellationToken);
         try
         {
+            modelPath ??= Environment.GetEnvironmentVariable("EmbeddingFilePath") ?? throw new Exception("Missing EmbeddingFilePath!"); // change it to your own model path.
             if (embedder is null)
             {
                 var @params = new ModelParams(modelPath) { EmbeddingMode = true };
@@ -34,7 +26,7 @@ public class LocalEmbedding : IEmbedding
         {
             semaphore.Release();
         }
-        List<float[]> list = new();
+        List<float[]> list = [];
         foreach (var text in textList)
         {
             list.Add(await embedder.GetEmbeddings(text, cancellationToken));

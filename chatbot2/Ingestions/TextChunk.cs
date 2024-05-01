@@ -1,7 +1,10 @@
-﻿namespace chatbot2.Ingestions;
+﻿using SharpToken;
+
+namespace chatbot2.Ingestions;
 
 public class TextChunk
 {
+    
     public TextChunk(string id, string text)
     {
         Id = id;

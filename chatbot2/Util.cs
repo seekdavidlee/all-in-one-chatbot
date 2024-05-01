@@ -1,4 +1,5 @@
-﻿using chatbot2.VectorDbs;
+﻿using chatbot2.Configuration;
+using chatbot2.VectorDbs;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
@@ -7,6 +8,8 @@ namespace chatbot2;
 
 public static class Util
 {
+    public const string BlobPrefix = "blob:";
+
     public static Task<string> GetResourceAsync(string resourceName)
     {
         using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"chatbot2.Prompts.{resourceName}");
@@ -42,23 +45,13 @@ public static class Util
         }
         return sb.ToString();
     }
-    public static ExecutionDataflowBlockOptions GetDataflowOptions(CancellationToken cancellationToken, int? overrideConcurrency = null)
+    public static ExecutionDataflowBlockOptions GetDataflowOptions(this IConfig config, CancellationToken cancellationToken, int? overrideConcurrency = null)
     {
-        int concurrency = overrideConcurrency ?? 1;
-        if (overrideConcurrency is null)
-        {
-            var concurrencyStr = Environment.GetEnvironmentVariable("Concurrency");
-            if (concurrencyStr is not null && int.TryParse(concurrencyStr, out int concurencyInt))
-            {
-                concurrency = concurencyInt;
-            }
-        }
-
         return new ExecutionDataflowBlockOptions
         {
-            MaxDegreeOfParallelism = concurrency,
+            MaxDegreeOfParallelism = overrideConcurrency ?? config.Concurrency,
             TaskScheduler = TaskScheduler.Default,
             CancellationToken = cancellationToken
-        }; ;
+        };
     }
 }

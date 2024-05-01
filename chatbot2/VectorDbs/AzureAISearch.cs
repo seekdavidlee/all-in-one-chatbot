@@ -3,6 +3,8 @@ using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
+using chatbot2.Configuration;
+using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
 namespace chatbot2.VectorDbs;
@@ -13,14 +15,19 @@ public class AzureAISearch : IVectorDb
     private readonly SearchClient searchClient;
     private readonly SearchIndexClient searchIndexClient;
     private readonly IEmbedding embedding;
-    public AzureAISearch(IEnumerable<IEmbedding> embeddings)
+    private readonly IConfig config;
+    private readonly ILogger<AzureAISearch> logger;
+
+    public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config, ILogger<AzureAISearch> logger)
     {
         embedding = embeddings.GetSelectedEmbedding();
         collectionName = Environment.GetEnvironmentVariable("CollectionName") ?? throw new Exception("Missing CollectionName");
         Uri azureSearchEndpoint = new(Environment.GetEnvironmentVariable("AzureSearchEndpoint") ?? throw new Exception("Missing AzureSearchEndpoint"));
-        var keyCredentials = new AzureKeyCredential(Environment.GetEnvironmentVariable("AzureSearchKey") ?? throw new Exception("Missing AzureSearchKey"));
+        AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
         searchIndexClient = new(azureSearchEndpoint, keyCredentials);
         searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
+        this.config = config;
+        this.logger = logger;
     }
 
     public Task DeleteAsync()
@@ -28,7 +35,6 @@ public class AzureAISearch : IVectorDb
         return searchIndexClient.DeleteIndexAsync(collectionName);
     }
 
-    const int VECTOR_DIMENSION = 1536;
     const string VECTOR_PROFILE_NAME = "my-profile-config";
     const string VECTOR_ALG_NAME = "my-alg-config";
 
@@ -36,7 +42,7 @@ public class AzureAISearch : IVectorDb
     {
         var searchIndex = new SearchIndex(collectionName);
         searchIndex.Fields.Add(new SimpleField("id", SearchFieldDataType.String) { IsKey = true });
-        searchIndex.Fields.Add(new VectorSearchField("contentVector", VECTOR_DIMENSION, VECTOR_PROFILE_NAME));
+        searchIndex.Fields.Add(new VectorSearchField("contentVector", config.TextEmbeddingVectorDimension, VECTOR_PROFILE_NAME));
         searchIndex.Fields.Add(new SimpleField("meta_json_string", SearchFieldDataType.String));
         searchIndex.Fields.Add(new SearchField("title", SearchFieldDataType.String) { IsSearchable = true });
         searchIndex.Fields.Add(new SimpleField("filepath", SearchFieldDataType.String));
@@ -50,10 +56,26 @@ public class AzureAISearch : IVectorDb
         await searchIndexClient.CreateOrUpdateIndexAsync(searchIndex);
     }
 
-    public Task ProcessAsync(IEnumerable<SearchModel> models)
+    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> models, CancellationToken cancellationToken)
     {
         var batch = IndexDocumentsBatch.Upload(models);
-        return searchClient.IndexDocumentsAsync(batch);
+        var response = await searchClient.IndexDocumentsAsync(batch, cancellationToken: cancellationToken);
+
+        int error = 0;
+        int success = 0;
+        foreach (var r in response.Value.Results)
+        {
+            if (r.Succeeded)
+            {
+                success++;
+            }
+            else
+            {
+                error++;
+                logger.LogError("Failed to index document: {documentIndexError}", r.ErrorMessage);
+            }
+        }
+        return (success, error);
     }
 
     public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)
@@ -72,7 +94,7 @@ public class AzureAISearch : IVectorDb
             VectorSearch = vectorSearchOptions
         };
 
-        var results = await searchClient.SearchAsync<SearchModel>(searchOptions);
+        var results = await searchClient.SearchAsync<SearchModel>(searchOptions, cancellationToken);
 
         List<IndexedDocument> indexedDocuments = [];
         await foreach (var result in results.Value.GetResultsAsync())
