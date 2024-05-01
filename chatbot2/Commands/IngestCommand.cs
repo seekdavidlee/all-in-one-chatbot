@@ -78,9 +78,11 @@ public class IngestCommand : ICommandAction
 
         var senderProcessor = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken));
         int size = 0;
-        var batches = new List<SearchModel>();
-        foreach (var model in all)
+        int startIndex = 0;
+        List<(int start, int end)> indexRanges = [];
+        for (int i = 0; i < all.Count; i++)
         {
+            var model = all.ElementAt(i);
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
@@ -88,18 +90,22 @@ public class IngestCommand : ICommandAction
             int currentSize = gptEncoding.CountTokens(model.ContentToVectorized);
             if (size + currentSize > config.IngestionBatchSize)
             {
-                await senderProcessor.SendAsync(() => ProcessAsync(vectorDb, embedding, batches, cancellationToken));
+                indexRanges.Add((startIndex, i - 1));
                 size = 0;
-                batches.Clear();
+                startIndex = i;
             }
 
             size += currentSize;
-            batches.Add(model);
         }
 
-        if (batches.Count > 0)
+        if (startIndex < all.Count - 1)
         {
-            await senderProcessor.SendAsync(() => ProcessAsync(vectorDb, embedding, batches, cancellationToken));
+            indexRanges.Add((startIndex, all.Count - 1));
+        }
+
+        foreach (var range in indexRanges)
+        {
+            await senderProcessor.SendAsync(() => ProcessAsync(vectorDb, embedding, all, range.start, range.end, cancellationToken));
         }
 
         senderProcessor.Complete();
@@ -109,10 +115,11 @@ public class IngestCommand : ICommandAction
         logger.LogInformation("processing data took {timeProcessingInMilliseconds} ms", timeProcessing.ElapsedMilliseconds);
     }
 
-    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, List<SearchModel> searchModels, CancellationToken cancellationToken)
+    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, ConcurrentBag<SearchModel> bagSearchModels, int startIndex, int endIndex, CancellationToken cancellationToken)
     {
         try
         {
+            var searchModels = bagSearchModels.Skip(startIndex).Take(endIndex - startIndex).ToList();
             this.ingestionReporter.IncrementSearchModelsProcessing(searchModels.Count);
             this.ingestionReporter.IncrementEmbeddingHttpRequest();
             var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(
@@ -141,8 +148,8 @@ public class IngestCommand : ICommandAction
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "error processing chunkBatch");
-            this.ingestionReporter.IncrementSearchModelsErrored(searchModels.Count);
+            logger.LogError(ex, "error processing searchModels");
+            this.ingestionReporter.IncrementSearchModelsErrored(endIndex - startIndex);
         }
     }
 
