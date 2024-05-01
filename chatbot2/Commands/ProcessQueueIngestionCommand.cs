@@ -46,6 +46,11 @@ public class ProcessQueueIngestionCommand : ICommandAction
             try
             {
                 var msg = await queueClient.ReceiveMessageAsync(cancellationToken: cancellationToken);
+                if (msg.Value is null)
+                {
+                    await Task.Delay(1000, cancellationToken);
+                    continue;
+                }
                 var queueModel = JsonSerializer.Deserialize<SearchModelQueueMessage>(Encoding.UTF8.GetString(msg.Value.Body.ToArray()));
                 if (queueModel is not null)
                 {
