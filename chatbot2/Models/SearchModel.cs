@@ -25,5 +25,6 @@ public class SearchModel
     [JsonPropertyName("contentVector")]
     public float[]? ContentVector { get; set; }
 
+    [JsonIgnore]
     public string? ContentToVectorized { get; set; }
 }

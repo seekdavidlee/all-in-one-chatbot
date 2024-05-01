@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SharpToken;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading.Tasks.Dataflow;
 
 namespace chatbot2.Commands;
@@ -39,6 +40,8 @@ public class IngestCommand : ICommandAction
         logger.LogInformation("initializing vectordb");
         await vectorDb.InitAsync();
 
+        Stopwatch timeLoading = new();
+        timeLoading.Start();
         ConcurrentBag<SearchModel> all = [];
 
         logger.LogInformation("loading data");
@@ -57,6 +60,8 @@ public class IngestCommand : ICommandAction
 
         senderLoader.Complete();
         await senderLoader.Completion;
+        timeLoading.Stop();
+        logger.LogInformation("loading data took {timeLoadingInMilliseconds} ms", timeLoading.ElapsedMilliseconds);
 
         if (cancellationToken.IsCancellationRequested)
         {
@@ -65,6 +70,8 @@ public class IngestCommand : ICommandAction
 
         logger.LogInformation("total records: {totalRecordsToProcess} to process", all.Count);
 
+        Stopwatch timeProcessing = new();
+        timeProcessing.Start();
         using var timer = new Timer((o) => this.ingestionReporter.Report(),
             null, TimeSpan.FromSeconds(config.IngestionReportEveryXSeconds), TimeSpan.FromSeconds(config.IngestionReportEveryXSeconds));
         this.ingestionReporter.Init(all.Count);
@@ -97,6 +104,9 @@ public class IngestCommand : ICommandAction
 
         senderProcessor.Complete();
         await senderProcessor.Completion;
+
+        timeProcessing.Stop();
+        logger.LogInformation("processing data took {timeProcessingInMilliseconds} ms", timeProcessing.ElapsedMilliseconds);
     }
 
     private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, List<SearchModel> searchModels, CancellationToken cancellationToken)
@@ -113,7 +123,7 @@ public class IngestCommand : ICommandAction
                 searchModels[i].ContentVector = floatsList[i];
             }
 
-            var (successCount, errorCount) = await vectorDb.ProcessAsync(searchModels);
+            var (successCount, errorCount) = await vectorDb.ProcessAsync(searchModels, cancellationToken);
             if (successCount > 0)
             {
                 this.ingestionReporter.IncrementSearchModelsProcessed(successCount);

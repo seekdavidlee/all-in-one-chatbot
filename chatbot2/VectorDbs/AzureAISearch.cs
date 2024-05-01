@@ -56,10 +56,10 @@ public class AzureAISearch : IVectorDb
         await searchIndexClient.CreateOrUpdateIndexAsync(searchIndex);
     }
 
-    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> models)
+    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> models, CancellationToken cancellationToken)
     {
         var batch = IndexDocumentsBatch.Upload(models);
-        var response = await searchClient.IndexDocumentsAsync(batch);
+        var response = await searchClient.IndexDocumentsAsync(batch, cancellationToken: cancellationToken);
 
         int error = 0;
         int success = 0;

@@ -44,7 +44,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
             await client.CreateCollectionAsync(collectionName);
     }
 
-    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> searchModels)
+    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> searchModels, CancellationToken cancellationToken)
     {
         if (collectionClient is null)
         {
@@ -55,6 +55,10 @@ public class ChromaDbClient : IVectorDb, IDisposable
         int success = 0;
         foreach (var model in searchModels)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
             if (model.Id is null ||
                 model.ContentVector is null ||
                 model.Content is null)
