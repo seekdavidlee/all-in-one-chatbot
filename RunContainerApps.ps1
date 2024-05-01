@@ -141,7 +141,7 @@ function Add-Containers {
                 --registry-password $using:acrPassword `
                 --cpu $using:containerConfig.cpu `
                 --memory $using:containerConfig.memory `
-                --restart-policy Always `
+                --restart-policy $using:containerConfig.restartPolicy `
                 --secure-environment-variables $using:containerSecureEnvironmentVars `
                 --environment-variables $using:containerEnvironmentVars `
                 --zone $using:config.ZONE
