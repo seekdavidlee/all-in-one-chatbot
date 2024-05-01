@@ -39,7 +39,7 @@ public class IngestionProcessor : IIngestionProcessor
                 searchModels[i].ContentVector = floatsList[i];
             }
 
-            var (successCount, errorCount) = await vectorDb.ProcessAsync(searchModels, collectionName: config.CollectionName, cancellationToken: cancellationToken);
+            var (successCount, errorCount) = await vectorDb.ProcessAsync(searchModels, collectionName: collectionName, cancellationToken: cancellationToken);
             if (successCount > 0)
             {
                 this.ingestionReporter.IncrementSearchModelsProcessed(successCount);
