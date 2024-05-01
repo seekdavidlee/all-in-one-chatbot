@@ -26,6 +26,8 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
         string[] dataSourcePaths = (isBlob ? dataSourcePathsStr[Util.BlobPrefix.Length..] : dataSourcePathsStr).Split(',');
         var htmlReader = new HtmlReader(this.config, this.logger);
         int totalRecords = 0;
+        var batches = new List<TextChunk[]>();
+
         foreach (var dataSourcePath in dataSourcePaths)
         {
             logger.LogInformation("processing data source: {dataSourcePath}...", dataSourcePath);
@@ -37,6 +39,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
             }
 
             int size = 0;
+
             List<TextChunk> chunks = [];
             foreach (var page in Pages)
             {
@@ -58,7 +61,7 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
                     {
                         if (size + txtChunk.TokenCount > this.config.IngestionBatchSize)
                         {
-                            await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, [.. chunks], cancellationToken));
+                            batches.Add([.. chunks]);
                             size = 0;
                             chunks.Clear();
                         }
@@ -71,13 +74,19 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
 
             if (chunks.Count > 0)
             {
-                await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, [.. chunks], cancellationToken));
+                batches.Add([.. chunks]);
             }
 
             foreach (var log in Logs)
             {
                 logger.LogInformation("log: {logText}, source: {logSource}", log.Text, log.Source);
             }
+        }
+
+        var count = batches.Sum(x => x.Length);
+        foreach (var batch in batches)
+        {
+            await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, batch, cancellationToken));
         }
 
         logger.LogInformation("total records: {totalRecordsToProcess} to process", totalRecords);
@@ -121,6 +130,11 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
             if (errorCount > 0)
             {
                 this.ingestionReporter.IncrementSearchModelsErrored(errorCount);
+            }
+
+            if (successCount + errorCount != chunkBatch.Length)
+            {
+                logger.LogWarning("chunkBatch {chunkBatchLength} does not match with indexed counts {indexedCounts}", chunkBatch.Length, successCount + errorCount);
             }
 
         }
