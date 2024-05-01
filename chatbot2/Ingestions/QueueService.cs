@@ -16,13 +16,13 @@ public class QueueService : IIngestionProcessor
         this.config = config;
     }
 
-    public async Task ProcessAsync(List<SearchModelDto> searchModels, CancellationToken cancellationToken)
+    public async Task ProcessAsync(List<SearchModelDto> searchModels, string collectionName, CancellationToken cancellationToken)
     {
         // send defined embedding type and collectionName (search index) to the queue
         var msg = new SearchModelQueueMessage
         {
             Id = Guid.NewGuid(),
-            CollectionName = config.CollectionName,
+            CollectionName = collectionName,
             EmbeddingType = config.EmbeddingType,
         };
         var blob = new BlobClient(config.AzureStorageConnectionString, config.IngestionQueueStorageName, msg.Id.ToString());

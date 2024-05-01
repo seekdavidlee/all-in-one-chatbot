@@ -57,7 +57,7 @@ public class ProcessQueueIngestionCommand : ICommandAction
 
                     if (models is not null)
                     {
-                        await ingestionProcessor.ProcessAsync(models, cancellationToken);
+                        await ingestionProcessor.ProcessAsync(models, queueModel.CollectionName ?? config.CollectionName, cancellationToken);
                     }
                 }
                 else

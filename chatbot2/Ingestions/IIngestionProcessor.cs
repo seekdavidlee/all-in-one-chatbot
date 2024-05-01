@@ -2,5 +2,5 @@
 
 public interface IIngestionProcessor
 {
-    Task ProcessAsync(List<SearchModelDto> searchModels, CancellationToken cancellationToken);
+    Task ProcessAsync(List<SearchModelDto> searchModels, string collectionName, CancellationToken cancellationToken);
 }

@@ -25,7 +25,7 @@ public class IngestionProcessor : IIngestionProcessor
         embedding = embeddings.GetSelectedEmbedding(config);
     }
 
-    public async Task ProcessAsync(List<SearchModelDto> searchModels, CancellationToken cancellationToken)
+    public async Task ProcessAsync(List<SearchModelDto> searchModels, string collectionName, CancellationToken cancellationToken)
     {
         try
         {

@@ -107,7 +107,7 @@ public class IngestCommand : ICommandAction
             await senderProcessor.SendAsync(async () =>
             {
                 var searchModels = all.GetSearchModels(start, end);
-                await ingestionProcessor.ProcessAsync(searchModels, cancellationToken);
+                await ingestionProcessor.ProcessAsync(searchModels, config.CollectionName, cancellationToken);
             });
         }
 
