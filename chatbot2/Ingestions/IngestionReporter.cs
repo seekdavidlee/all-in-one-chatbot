@@ -51,6 +51,12 @@ public class IngestionReporter
         return Interlocked.Add(ref embeddingTokensProcessed, count);
     }
 
+    public void Init()
+    {
+        reporterStartTime = DateTime.UtcNow;
+        this.totalRecords = -1;
+    }
+
     public void Init(int totalRecords)
     {
         reporterStartTime = DateTime.UtcNow;
@@ -74,8 +80,11 @@ public class IngestionReporter
             double perSec = totalProcessed / totalSpan.TotalSeconds;
             logger.LogInformation("SearchModels (Total) processed: {totalSearchModelsProcessed}, errored: {totalSearchModelsErrored}, AvgRate: {totalSearchModelsProcessedAvg:0.00}/sec", totalProcessed, totalErrored, perSec);
 
-            double progress = ((totalErrored + totalProcessed) / (double)allTotalRecords) * 100;
-            logger.LogInformation("Progress: {progress}, Interval: {progressInterval}", progress, Interlocked.Add(ref interval, 0));
+            if (allTotalRecords > 0)
+            {
+                double progress = ((totalErrored + totalProcessed) / (double)allTotalRecords) * 100;
+                logger.LogInformation("Progress: {progress}, Interval: {progressInterval}", progress, Interlocked.Add(ref interval, 0));
+            }
 
             double totalSeconds = (DateTime.UtcNow - lastReportTime).TotalSeconds;
             lastReportTime = DateTime.UtcNow;

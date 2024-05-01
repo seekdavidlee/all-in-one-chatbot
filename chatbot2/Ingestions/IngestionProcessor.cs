@@ -8,7 +8,6 @@ public class IngestionProcessor : IIngestionProcessor
 {
     private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<IngestCommand> logger;
-    private readonly IConfig config;
     private readonly IVectorDb vectorDb;
     private readonly IEmbedding embedding;
 
@@ -20,7 +19,6 @@ public class IngestionProcessor : IIngestionProcessor
     {
         this.ingestionReporter = ingestionReporter;
         this.logger = logger;
-        this.config = config;
         vectorDb = vectorDbs.GetSelectedVectorDb();
         embedding = embeddings.GetSelectedEmbedding(config);
     }

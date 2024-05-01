@@ -10,6 +10,7 @@ public class QueueService : IIngestionProcessor
 {
     private readonly QueueClient queueClient;
     private readonly IConfig config;
+    private static readonly Guid jobId = Guid.NewGuid();
     public QueueService(IConfig config)
     {
         queueClient = new(config.AzureQueueConnectionString, config.IngestionQueueName);
@@ -24,8 +25,9 @@ public class QueueService : IIngestionProcessor
             Id = Guid.NewGuid(),
             CollectionName = collectionName,
             EmbeddingType = config.EmbeddingType,
+            JobId = jobId
         };
-        var blob = new BlobClient(config.AzureStorageConnectionString, config.IngestionQueueStorageName, msg.Id.ToString());
+        var blob = new BlobClient(config.AzureStorageConnectionString, config.IngestionQueueStorageName, $"{jobId}\\{msg.Id}");
         await blob.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(searchModels))), cancellationToken);
         await queueClient.SendMessageAsync(JsonSerializer.Serialize(msg), cancellationToken);
     }
