@@ -50,10 +50,10 @@ public class HtmlReader
             }
 
             var bc = new BlobClient(config.AzureStorageConnectionString, containerName, blob.Name);
-            var content = await bc.DownloadContentAsync(cancellationToken);
-            using var reader = new StreamReader(content.Value.Content.ToStream());
+            var content = (await bc.DownloadContentAsync(cancellationToken)).Value.Content.ToString();
+
             var path = bc.Uri.ToString();
-            var page = GetPage(await reader.ReadToEndAsync(cancellationToken), path[..path.IndexOf('?')], logs);
+            var page = GetPage(content, path[..path.IndexOf('?')], logs);
             if (page is not null)
             {
                 pages.Add(page);
