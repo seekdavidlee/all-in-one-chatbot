@@ -6,12 +6,13 @@ public class Page
 {
     private readonly HtmlNode node;
     private readonly PageContext pageContext;
-    private readonly List<PageSection> sections = new();
-    private readonly List<PageLogEntry> logs = new();
+    private readonly List<PageSection> sections = [];
+    private readonly List<PageLogEntry> logs;
     public Page(HtmlNode node, PageContext pageContext, List<PageLogEntry> logs)
     {
         this.node = node;
         this.pageContext = pageContext;
+        this.logs = logs;
     }
 
     public void Process()
@@ -53,11 +54,4 @@ public class Page
     public PageContext Context { get { return pageContext; } }
 
     public List<PageSection> Sections { get { return sections; } }
-}
-
-public class PageLogEntry
-{
-    public string? Source { get; set; }
-
-    public string? Text { get; set; }
 }

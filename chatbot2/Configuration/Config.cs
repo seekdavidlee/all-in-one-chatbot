@@ -19,6 +19,7 @@ public class Config : IConfig
         this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
         this.Concurrency = this.config.Get<int>("Concurrency", int.Parse);
         this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", int.Parse);
+        this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 5 : int.Parse(v));
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -36,6 +37,8 @@ public class Config : IConfig
 
     public int Concurrency { get; }
 
+    public int IngestionReportEveryXSeconds { get; }
+
     public void Validate()
     {
         this.config.Optional("AzureOpenAIEmbeddings", this.AzureOpenAIEmbeddings, hideValue: true);
@@ -49,5 +52,6 @@ public class Config : IConfig
         this.config.Require("TextEmbeddingVectorDimension", this.TextEmbeddingVectorDimension, hideValue: false);
         this.config.Require("Concurrency", this.Concurrency, hideValue: false);
         this.config.Require("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
+        this.config.Require("IngestionReportEveryXSeconds", this.IngestionReportEveryXSeconds, hideValue: false);
     }
 }

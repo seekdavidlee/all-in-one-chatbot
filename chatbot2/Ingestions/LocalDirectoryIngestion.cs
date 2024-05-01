@@ -1,32 +1,28 @@
 ﻿using chatbot2.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Threading.Tasks.Dataflow;
 
 namespace chatbot2.Ingestions;
 
 public class LocalDirectoryIngestion : IVectorDbIngestion
 {
-    private readonly IngestionReporter ingestionReporter;
     private readonly IConfig config;
     private readonly ILogger<LocalDirectoryIngestion> logger;
 
-    public LocalDirectoryIngestion(IngestionReporter ingestionReporter, IConfig config, ILogger<LocalDirectoryIngestion> logger)
+    public LocalDirectoryIngestion(IConfig config, ILogger<LocalDirectoryIngestion> logger)
     {
-        this.ingestionReporter = ingestionReporter;
         this.config = config;
         this.logger = logger;
     }
 
-    public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
+    public async Task<List<SearchModel>> LoadDataAsync(CancellationToken cancellationToken)
     {
-        var sender = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken));
         var dataSourcePathsStr = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths"));
         bool isBlob = dataSourcePathsStr.StartsWith(Util.BlobPrefix);
         string[] dataSourcePaths = (isBlob ? dataSourcePathsStr[Util.BlobPrefix.Length..] : dataSourcePathsStr).Split(',');
         var htmlReader = new HtmlReader(this.config, this.logger);
-        int totalRecords = 0;
-        var batches = new List<TextChunk[]>();
+
+        List<SearchModel> results = [];
 
         foreach (var dataSourcePath in dataSourcePaths)
         {
@@ -35,17 +31,14 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
 
             if (cancellationToken.IsCancellationRequested)
             {
-                return;
+                return results;
             }
 
-            int size = 0;
-
-            List<TextChunk> chunks = [];
             foreach (var page in Pages)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    return;
+                    return results;
                 }
                 if (page.Sections.Count == 0)
                 {
@@ -59,89 +52,24 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
                 {
                     foreach (var txtChunk in section.TextChunks)
                     {
-                        if (size + txtChunk.TokenCount > this.config.IngestionBatchSize)
+                        results.Add(new()
                         {
-                            batches.Add([.. chunks]);
-                            size = 0;
-                            chunks.Clear();
-                        }
-                        size += txtChunk.TokenCount;
-                        chunks.Add(txtChunk);
-                        totalRecords++;
+                            Id = Guid.NewGuid().ToString(),
+                            Content = txtChunk.Text,
+                            MetaData = JsonSerializer.Serialize(txtChunk.MetaDatas),
+                            Filepath = page.Context.PagePath,
+                            ContentToVectorized = txtChunk.Text,
+                        });
                     }
                 }
             }
 
-            if (chunks.Count > 0)
-            {
-                batches.Add([.. chunks]);
-            }
-
             foreach (var log in Logs)
             {
-                logger.LogInformation("log: {logText}, source: {logSource}", log.Text, log.Source);
+                logger.LogDebug("log: {logText}, source: {logSource}", log.Text, log.Source);
             }
         }
 
-        var count = batches.Sum(x => x.Length);
-        foreach (var batch in batches)
-        {
-            await sender.SendAsync(() => ProcessAsync(vectorDb, embedding, batch, cancellationToken));
-        }
-
-        logger.LogInformation("total records: {totalRecordsToProcess} to process", totalRecords);
-
-        this.ingestionReporter.Init(totalRecords);
-
-        sender.Complete();
-        await sender.Completion;
-    }
-
-    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, TextChunk[] chunkBatch, CancellationToken cancellationToken)
-    {
-        try
-        {
-            this.ingestionReporter.IncrementSearchModelsProcessing(chunkBatch.Length);
-            this.ingestionReporter.IncrementEmbeddingHttpRequest();
-            var floatsList = await embedding.GetEmbeddingsAsync(chunkBatch.Select(
-                x => x.Text ?? throw new Exception("text is null")).ToArray(), cancellationToken);
-
-            List<SearchModel> models = [];
-            for (int i = 0; i < chunkBatch.Length; i++)
-            {
-                var t = chunkBatch[i];
-                var m = new SearchModel
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Content = t.Text,
-                    MetaData = JsonSerializer.Serialize(t.MetaDatas),
-                    Filepath = t.Id,
-                    ContentVector = floatsList[i]
-                };
-
-                models.Add(m);
-            }
-
-            var (successCount, errorCount) = await vectorDb.ProcessAsync(models);
-            if (successCount > 0)
-            {
-                this.ingestionReporter.IncrementSearchModelsProcessed(successCount);
-            }
-            if (errorCount > 0)
-            {
-                this.ingestionReporter.IncrementSearchModelsErrored(errorCount);
-            }
-
-            if (successCount + errorCount != chunkBatch.Length)
-            {
-                logger.LogWarning("chunkBatch {chunkBatchLength} does not match with indexed counts {indexedCounts}", chunkBatch.Length, successCount + errorCount);
-            }
-
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "error processing chunkBatch");
-            this.ingestionReporter.IncrementSearchModelsErrored(chunkBatch.Length);
-        }
+        return results;
     }
 }

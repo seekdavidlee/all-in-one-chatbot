@@ -14,5 +14,6 @@ public interface IConfig
     string LogLevel { get; }
     int Concurrency { get; }
     int IngestionBatchSize { get; }
+    public int IngestionReportEveryXSeconds { get; }
     void Validate();
 }

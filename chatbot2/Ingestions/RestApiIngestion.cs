@@ -11,15 +11,14 @@ public class RestApiIngestion : IVectorDbIngestion
     private readonly RestClientConfig config;
     private readonly IRestClientAuthHeaderProvider restClientAuthHeaderProvider;
     private readonly HttpClient httpClient;
-    private readonly IngestionReporter ingestionReporter;
+
     private readonly ILogger<RestApiIngestion> logger;
 
-    private readonly int batchSize = 30;
+
     public RestApiIngestion(IConfig config, IRestClientAuthHeaderProvider restClientAuthHeaderProvider, HttpClient httpClient, IngestionReporter ingestionReporter, ILogger<RestApiIngestion> logger)
     {
         var restClientConfig = Environment.GetEnvironmentVariable("RestClientConfig") ?? throw new Exception("Missing RestClientConfigFilePath");
 
-        
         string json;
         if (restClientConfig.StartsWith(Util.BlobPrefix))
         {
@@ -34,24 +33,15 @@ public class RestApiIngestion : IVectorDbIngestion
             json = File.ReadAllText(restClientConfig);
         }
         RestClientConfig rcConfig = JsonSerializer.Deserialize<RestClientConfig>(json) ?? throw new Exception("Failed to deserialize RestClientConfig");
-        var ingestionBatchSize = Environment.GetEnvironmentVariable("IngestionBatchSize");
-        if (ingestionBatchSize is not null)
-        {
-            if (int.TryParse(ingestionBatchSize, out int batchSize))
-            {
-                this.batchSize = batchSize;
-            }
-        }
 
         this.config = rcConfig;
         this.restClientAuthHeaderProvider = restClientAuthHeaderProvider;
         this.httpClient = httpClient;
-        this.ingestionReporter = ingestionReporter;
         this.logger = logger;
         this.httpClient.BaseAddress = new Uri(rcConfig.BaseUrl ?? throw new Exception("config url is invalid"));
     }
 
-    public async Task RunAsync(IVectorDb vectorDb, IEmbedding embedding, CancellationToken cancellationToken)
+    public async Task<List<SearchModel>> LoadDataAsync(CancellationToken cancellationToken)
     {
         if (config.Mappings is null)
         {
@@ -72,12 +62,19 @@ public class RestApiIngestion : IVectorDbIngestion
         {
             throw new Exception("config InitialRoute is invalid");
         }
+
+        List<SearchModel> results = [];
         string? continuationRoute = config.InitialRoute;
 
         this.httpClient.DefaultRequestHeaders.Authorization = await restClientAuthHeaderProvider.GetAuthorizationHeader();
 
         while (continuationRoute is not null)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return results;
+            }
+
             var response = await httpClient.GetStringAsync(continuationRoute, cancellationToken);
             if (response is null)
             {
@@ -97,9 +94,13 @@ public class RestApiIngestion : IVectorDbIngestion
             var records = ((JsonElement)page[config.RecordsField]).Deserialize<IDictionary<string, object>[]>();
             if (records is not null)
             {
-                List<(SearchModel Model, string VectorContent)> searchModels = [];
                 foreach (var record in records)
                 {
+                    if (cancellationToken.IsCancellationRequested)
+                    {
+                        return results;
+                    }
+
                     bool shouldAdd = true;
                     if (config.AndConditions is not null)
                     {
@@ -131,41 +132,18 @@ public class RestApiIngestion : IVectorDbIngestion
                         continue;
                     }
 
-                    searchModels.Add(Create(record, config.Mappings));
-
-                    if (searchModels.Count >= batchSize)
-                    {
-                        await ProcessBatchAsync(vectorDb, embedding, searchModels, cancellationToken);
-                    }
-                }
-
-                if (searchModels.Count > 0)
-                {
-                    await ProcessBatchAsync(vectorDb, embedding, searchModels, cancellationToken);
+                    results.Add(Create(record, config.Mappings));
                 }
             }
         }
-    }
 
-    private async Task ProcessBatchAsync(IVectorDb vectorDb, IEmbedding embedding, List<(SearchModel Model, string VectorContent)> searchModels, CancellationToken cancellationToken)
-    {
-        logger.LogInformation("Uploading batch of {searchModelsCount} records", searchModels.Count);
-        this.ingestionReporter.IncrementSearchModelsProcessing(searchModels.Count);
-        var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(x => x.VectorContent).ToArray(), cancellationToken);
-        for (var i = 0; i < floatsList.Count; i++)
-        {
-            searchModels[i].Model.ContentVector = floatsList[i];
-        }
-        await vectorDb.ProcessAsync(searchModels.Select(x => x.Model));
-        this.ingestionReporter.IncrementSearchModelsProcessed(searchModels.Count);
-        searchModels.Clear();
+        return results;
     }
 
     const string DictionaryToJsonCoversion = "DictionaryToJson";
 
-    private static (SearchModel Model, string VectorContent) Create(IDictionary<string, object> record, RestClientMapping[] mappings)
+    private static SearchModel Create(IDictionary<string, object> record, RestClientMapping[] mappings)
     {
-        string? vectorContent = null;
         var searchModel = new SearchModel
         {
             Id = Guid.NewGuid().ToString(),
@@ -230,14 +208,14 @@ public class RestApiIngestion : IVectorDbIngestion
 
             if (mapping.Target == "contentVector")
             {
-                vectorContent = mappedValue;
+                searchModel.ContentToVectorized = mappedValue;
             }
         }
 
-        if (vectorContent is null)
+        if (searchModel.ContentToVectorized is null)
         {
             throw new Exception("vectorContent is not configured");
         }
-        return (searchModel, vectorContent);
+        return searchModel;
     }
 }
