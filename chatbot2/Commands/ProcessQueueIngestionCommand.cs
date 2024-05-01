@@ -14,12 +14,11 @@ public class ProcessQueueIngestionCommand : ICommandAction
     private readonly IIngestionProcessor ingestionProcessor;
     private readonly ILogger<ProcessQueueIngestionCommand> logger;
     private readonly IConfig config;
-    private readonly IVectorDb vectorDb;
     private readonly QueueClient queueClient;
 
     public string Name => "ingest-queue-processing";
 
-    public ProcessQueueIngestionCommand(IEnumerable<IVectorDb> vectorDbs,
+    public ProcessQueueIngestionCommand(
         ILogger<ProcessQueueIngestionCommand> logger,
         IEnumerable<IIngestionProcessor> ingestionProcessors,
         IConfig config)
@@ -27,14 +26,12 @@ public class ProcessQueueIngestionCommand : ICommandAction
         ingestionProcessor = ingestionProcessors.GetIngestionProcessor(config);
         this.logger = logger;
         this.config = config;
-        vectorDb = vectorDbs.GetSelectedVectorDb();
         queueClient = new(config.AzureQueueConnectionString, config.IngestionQueueName);
     }
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
-        logger.LogInformation("initializing vectordb");
-        await vectorDb.InitAsync();
+        logger.LogInformation("started listening for records...");
 
         while (true)
         {
@@ -48,7 +45,7 @@ public class ProcessQueueIngestionCommand : ICommandAction
                 var msg = await queueClient.ReceiveMessageAsync(cancellationToken: cancellationToken);
                 if (msg.Value is null)
                 {
-                    await Task.Delay(1000, cancellationToken);
+                    await Task.Delay(TimeSpan.FromMilliseconds(this.config.IngestionQueuePollingInterval), cancellationToken);
                     continue;
                 }
                 var queueModel = JsonSerializer.Deserialize<SearchModelQueueMessage>(Encoding.UTF8.GetString(msg.Value.Body.ToArray()));
@@ -75,7 +72,7 @@ public class ProcessQueueIngestionCommand : ICommandAction
                 logger.LogError(ex, "Error processing queue ingestion");
             }
 
-            await Task.Delay(1000, cancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(config.IngestionQueuePollingInterval), cancellationToken);
         }
     }
 }

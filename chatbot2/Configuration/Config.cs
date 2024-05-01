@@ -26,6 +26,7 @@ public class Config : IConfig
         this.AzureQueueConnectionString = this.config.GetSecret<string>("AzureQueueConnectionString").GetAwaiter().GetResult();
         this.CollectionName = this.config.Get<string>("CollectionName");
         this.EmbeddingType = this.config.Get<string>("EmbeddingType");
+        this.IngestionQueuePollingInterval = this.config.Get<int>("IngestionQueuePollingInterval", v => v is null ? 1000 : int.Parse(v));
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -34,7 +35,7 @@ public class Config : IConfig
     public string CustomAuthProviderContent { get; }
     public string AzureStorageConnectionString { get; }
     public string OpenTelemetryConnectionString { get; }
-
+    public int IngestionQueuePollingInterval { get; }
     public string IngestionQueueName { get; }
     public string AzureQueueConnectionString { get; }
     public string[] IngestionTypes { get; }
@@ -75,5 +76,6 @@ public class Config : IConfig
         this.config.Optional("IngestionQueueStorageName", this.IngestionQueueStorageName, hideValue: false);
         this.config.Optional("CollectionName", this.CollectionName, hideValue: false);
         this.config.Optional("EmbeddingType", this.EmbeddingType, hideValue: false);
+        this.config.Optional("IngestionQueuePollingInterval", this.IngestionQueuePollingInterval, hideValue: false);
     }
 }
