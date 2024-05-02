@@ -42,6 +42,8 @@ public class ProcessQueueIngestionCommand : ICommandAction
 
         logger.LogInformation("started listening for records...");
 
+        DateTime? lastMessageReceived = null;
+        bool publishedLastMessageReceived = false;
         while (true)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -54,12 +56,22 @@ public class ProcessQueueIngestionCommand : ICommandAction
                 var msg = await queueClient.ReceiveMessageAsync(cancellationToken: cancellationToken);
                 if (msg.Value is null)
                 {
+                    if (!publishedLastMessageReceived)
+                    {
+                        if (lastMessageReceived is not null)
+                        {
+                            logger.LogInformation("Last message received at {lastMessageReceived}", lastMessageReceived);
+                            publishedLastMessageReceived = true;
+                        }
+                    }
                     await Task.Delay(TimeSpan.FromMilliseconds(this.config.IngestionQueuePollingInterval), cancellationToken);
                     continue;
                 }
                 var queueModel = JsonSerializer.Deserialize<SearchModelQueueMessage>(Encoding.UTF8.GetString(msg.Value.Body.ToArray()));
                 if (queueModel is not null)
                 {
+                    lastMessageReceived = DateTime.UtcNow;
+                    publishedLastMessageReceived = false;
                     var blob = new BlockBlobClient(config.AzureStorageConnectionString, config.IngestionQueueStorageName, $"{queueModel.JobId}\\{queueModel.Id}");
                     var cnt = await blob.DownloadContentAsync(cancellationToken);
                     var models = JsonSerializer.Deserialize<List<SearchModelDto>>(Encoding.UTF8.GetString(cnt.Value.Content.ToArray()));
@@ -81,8 +93,6 @@ public class ProcessQueueIngestionCommand : ICommandAction
             {
                 logger.LogError(ex, "Error processing queue ingestion");
             }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(config.IngestionQueuePollingInterval), cancellationToken);
         }
     }
 }

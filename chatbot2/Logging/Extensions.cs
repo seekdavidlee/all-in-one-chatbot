@@ -7,6 +7,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry;
 using chatbot2.Configuration;
 using System.Reflection;
+using Microsoft.Extensions.Logging.Console;
 
 namespace chatbot2.Logging;
 
@@ -19,7 +20,7 @@ public static class Extensions
         services.AddLogging(c =>
         {
             c.SetMinimumLevel((LogLevel)Enum.Parse(typeof(LogLevel), config.LogLevel));
-            c.AddConsole();
+            c.AddSimpleConsole();
             c.AddOpenTelemetry(o =>
             {
                 o.AddAzureMonitorLogExporter(o => o.ConnectionString = config.OpenTelemetryConnectionString)

@@ -27,6 +27,7 @@ public class Config : IConfig
         this.CollectionName = this.config.Get<string>("CollectionName");
         this.EmbeddingType = this.config.Get<string>("EmbeddingType");
         this.IngestionQueuePollingInterval = this.config.Get<int>("IngestionQueuePollingInterval", v => v is null ? 1000 : int.Parse(v));
+        this.EvaluationStorageName = this.config.Get<string>("EvaluationStorageName");
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -56,6 +57,8 @@ public class Config : IConfig
 
     public string EmbeddingType { get; }
 
+    public string EvaluationStorageName { get; }
+
     public void Validate()
     {
         this.config.Optional("AzureOpenAIEmbeddings", this.AzureOpenAIEmbeddings, hideValue: true);
@@ -77,5 +80,6 @@ public class Config : IConfig
         this.config.Optional("CollectionName", this.CollectionName, hideValue: false);
         this.config.Optional("EmbeddingType", this.EmbeddingType, hideValue: false);
         this.config.Optional("IngestionQueuePollingInterval", this.IngestionQueuePollingInterval, hideValue: false);
+        this.config.Optional("EvaluationStorageName", this.EvaluationStorageName, hideValue: false);
     }
 }

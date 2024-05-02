@@ -21,9 +21,8 @@ public class ReportRepository
         {
             if (client is null)
             {
-                var svc = new BlobServiceClient(config.AzureStorageConnectionString);
-                var containerName = Environment.GetEnvironmentVariable("AzureStorageContainerName") ?? throw new Exception("missing AzureStorageContainerName");
-                client = svc.GetBlobContainerClient(containerName);
+                var svc = new BlobServiceClient(config.AzureStorageConnectionString);                
+                client = svc.GetBlobContainerClient(config.EvaluationStorageName);
             }
             return client;
         }

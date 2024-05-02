@@ -22,5 +22,6 @@ public interface IConfig
     string CollectionName { get; }
     string AzureQueueConnectionString { get; }
     string EmbeddingType { get; }
+    string EvaluationStorageName { get; }
     void Validate();
 }
