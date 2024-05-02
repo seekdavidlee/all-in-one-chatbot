@@ -24,7 +24,7 @@ public class AzureAISearch : IVectorDb
     {
         embedding = embeddings.GetSelectedEmbedding(config);
 
-        azureSearchEndpoint = new(Environment.GetEnvironmentVariable("AzureSearchEndpoint") ?? throw new Exception("Missing AzureSearchEndpoint"));
+        azureSearchEndpoint = new(config.AzureSearchEndpoint);
         keyCredentials = new(config.AzureSearchKey);
         searchIndexClient = new(azureSearchEndpoint, keyCredentials);
 

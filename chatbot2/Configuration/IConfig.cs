@@ -4,6 +4,7 @@ public interface IConfig
 {
     string AzureOpenAIEmbeddings { get; }
     string AzureSearchKey { get; }
+    string AzureSearchEndpoint { get; }
     string AzureOpenAIKey { get; }
     string CustomAuthProviderUrl { get; }
     string CustomAuthProviderContent { get; }

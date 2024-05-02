@@ -8,7 +8,10 @@ public class Config : IConfig
     {
         this.config = config;
         this.AzureOpenAIEmbeddings = this.config.GetSecret<string>("AzureOpenAIEmbeddings").GetAwaiter().GetResult();
-        this.AzureSearchKey = this.config.GetSecret<string>("AzureSearchKey").GetAwaiter().GetResult();
+
+        var conn = (this.config.GetSecret<string>("AzureSearchConnectionString").GetAwaiter().GetResult()).Split(';');
+        this.AzureSearchKey = conn[1];
+        this.AzureSearchEndpoint = conn[0];
         this.AzureOpenAIKey = this.config.GetSecret<string>("AzureOpenAIKey").GetAwaiter().GetResult();
         this.CustomAuthProviderUrl = this.config.GetSecret<string>("CustomAuthProviderUrl").GetAwaiter().GetResult();
         this.CustomAuthProviderContent = this.config.GetSecret<string>("CustomAuthProviderContent").GetAwaiter().GetResult();
@@ -31,6 +34,7 @@ public class Config : IConfig
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
+    public string AzureSearchEndpoint { get; }
     public string AzureOpenAIKey { get; }
     public string CustomAuthProviderUrl { get; }
     public string CustomAuthProviderContent { get; }
@@ -63,6 +67,7 @@ public class Config : IConfig
     {
         this.config.Optional("AzureOpenAIEmbeddings", this.AzureOpenAIEmbeddings, hideValue: true);
         this.config.Optional("AzureSearchKey", this.AzureSearchKey, hideValue: true);
+        this.config.Optional("AzureSearchEndpoint", this.AzureSearchEndpoint, hideValue: false);
         this.config.Optional("AzureOpenAIKey", this.AzureOpenAIKey, hideValue: true);
         this.config.Optional("CustomAuthProviderUrl", this.CustomAuthProviderUrl, hideValue: true);
         this.config.Optional("AzureStorageConnectionString", this.AzureStorageConnectionString, hideValue: true);
