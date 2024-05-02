@@ -47,7 +47,6 @@ public class IngestionReporter
 
     public int IncrementEmbeddingTokensProcessed(int count)
     {
-        Interlocked.Add(ref embeddingTokensProcessed, count);
         return Interlocked.Add(ref embeddingTokensProcessed, count);
     }
 
@@ -94,11 +93,11 @@ public class IngestionReporter
 
             int intervalTotal = Interlocked.Add(ref searchModelsProcessed, 0);
             perSec = intervalTotal / totalSeconds;
-            logger.LogInformation("SearchModel Interval Total: {totalSearchModelsProcessed}, Interval AvgRate: {intervalSearchModelsProcessedAvg:0.00}/sec", intervalTotal, perSec);
+            logger.LogInformation("SearchModel Interval Total: {intervalSearchModelsProcessed}, Interval AvgRate: {intervalSearchModelsProcessedAvg:0.00}/sec", intervalTotal, perSec);
 
             intervalTotal = Interlocked.Add(ref embeddingTokensProcessed, 0);
             perSec = intervalTotal / totalSeconds;
-            logger.LogInformation("Embedding tokens Interval Total: {embeddingTokensProcessed}, Interval AvgRate: {intervalEmbeddingTokensProcessedAvg:0.00}/sec", totalProcessed, perSec);
+            logger.LogInformation("Embedding tokens Interval Total: {embeddingTokensProcessed}, Interval AvgRate: {intervalEmbeddingTokensProcessedAvg:0.00}/sec", intervalTotal, perSec);
 
             logger.LogInformation("SearchModel: processing: {searchModelsProcessing} processed: {searchModelsProcessed}, errors: {searchModelsErrors}",
                 Interlocked.Add(ref searchModelsProcessing, 0),
