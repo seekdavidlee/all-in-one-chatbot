@@ -49,6 +49,7 @@ services.AddSingleton<ICommandAction, DeleteSearchCommand>();
 services.AddSingleton<ICommandAction, EvaluationCommand>();
 services.AddSingleton<ICommandAction, EvaluationSummarizeCommand>();
 services.AddSingleton<ICommandAction, ShowEvaluationMetricResultCommand>();
+services.AddSingleton<ICommandAction, ProcessQueueIngestionCommand>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
 services.AddSingleton<InferenceWorkflow>();
@@ -57,52 +58,53 @@ services.AddSingleton<FileCache>();
 services.AddSingleton<ReportRepository>();
 services.AddSingleton<EvaluationSummarizeWorkflow>();
 services.AddSingleton<IngestionReporter>();
+services.AddSingleton<IIngestionProcessor, QueueService>();
+services.AddSingleton<IIngestionProcessor, IngestionProcessor>();
 
 var (traceProvider, meterProvider) = services.AddDiagnosticsServices(config, DiagnosticServices.Source.Name);
 
 var cmdName = argsConfig["command"];
 var provider = services.BuildServiceProvider();
-foreach (var command in provider.GetServices<ICommandAction>())
+var command = provider.GetServices<ICommandAction>().SingleOrDefault(c => c.Name == cmdName);
+if (command is not null)
 {
-    if (command.Name == cmdName)
+    var logger = provider.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Command started at: {0}", DateTime.UtcNow);
+    Console.ForegroundColor = ConsoleColor.Green;
+    Console.WriteLine("press Ctrl+C to stop...");
+    Console.ResetColor();
+
+    var cts = new CancellationTokenSource();
+    Console.CancelKeyPress += (s, e) =>
     {
-        Console.WriteLine("Started: {0}", DateTime.UtcNow);
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("press Ctrl+C to stop...");
-        Console.ResetColor();
+        Console.WriteLine("\nuser cancelled");
+        e.Cancel = true;
+        cts.Cancel();
+    };
 
-        var cts = new CancellationTokenSource();
-        Console.CancelKeyPress += (s, e) =>
-        {
-            Console.WriteLine("\nuser cancelled");
-            e.Cancel = true;
-            cts.Cancel();
-        };
-
-        var sw = new Stopwatch();
-        sw.Start();
-        try
-        {
-            await command.ExecuteAsync(argsConfig, cancellationToken: cts.Token);
-        }
-        catch (Exception ex)
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(ex.Message);
-            Console.ResetColor();
-        }
-        finally
-        {
-            sw.Stop();
-        }
-
-        var logger = provider.GetRequiredService<ILogger<Program>>();
-        logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
-
-        meterProvider.Dispose();
-        traceProvider.Dispose();
-        return;
+    var sw = new Stopwatch();
+    sw.Start();
+    try
+    {
+        await command.ExecuteAsync(argsConfig, cancellationToken: cts.Token);
     }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error executing command '{commandName}'", command.Name);
+    }
+    finally
+    {
+        sw.Stop();
+    }
+
+    logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
+
+    meterProvider.Dispose();
+    traceProvider.Dispose();
+}
+else
+{
+    Console.WriteLine($"Command '{cmdName}' not found");
 }
 
 

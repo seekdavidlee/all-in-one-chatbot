@@ -2,5 +2,5 @@
 
 public interface IVectorDbIngestion
 {
-    Task<List<SearchModel>> LoadDataAsync(CancellationToken cancellationToken);
+    Task<List<SearchModelDto>> LoadDataAsync(CancellationToken cancellationToken);
 }

@@ -1,5 +1,7 @@
 ﻿using chatbot2.Configuration;
+using chatbot2.Ingestions;
 using chatbot2.VectorDbs;
+using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
@@ -17,10 +19,9 @@ public static class Util
         return streamReader.ReadToEndAsync();
     }
 
-    public static IEmbedding GetSelectedEmbedding(this IEnumerable<IEmbedding> embeddings)
+    public static IEmbedding GetSelectedEmbedding(this IEnumerable<IEmbedding> embeddings, IConfig config)
     {
-        var embeddingType = Environment.GetEnvironmentVariable("EmbeddingType") ?? throw new Exception("Missing EmbeddingType!");
-        return embeddings.Single(x => x.GetType().Name == embeddingType);
+        return embeddings.Single(x => x.GetType().Name == config.EmbeddingType);
     }
 
     public static IVectorDb GetSelectedVectorDb(this IEnumerable<IVectorDb> vectorDbs)
@@ -53,5 +54,15 @@ public static class Util
             TaskScheduler = TaskScheduler.Default,
             CancellationToken = cancellationToken
         };
+    }
+
+    public static List<SearchModelDto> GetSearchModels(this ConcurrentBag<SearchModelDto> bagSearchModels, int startIndex, int endIndex)
+    {
+        return bagSearchModels.Skip(startIndex).Take(endIndex - startIndex).ToList();
+    }
+
+    public static IIngestionProcessor GetIngestionProcessor(this IEnumerable<IIngestionProcessor> processors, IConfig config)
+    {
+        return processors.Single(x => x.GetType().Name == config.IngestionProcessorType);
     }
 }

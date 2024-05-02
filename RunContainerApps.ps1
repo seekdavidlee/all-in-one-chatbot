@@ -129,8 +129,16 @@ function Add-Containers {
     $jobs = @()
     for ($i = $StartingNameIndex; $i -lt $Count; $i++) {
         $containerName = "$($config.CONTAINER_NAME_PREFIX)-" + $i
+        $zone = $config.ZONE
         $jobs += Start-Job -ScriptBlock {
-            param($containerName)
+            param($containerName, $zone)
+
+            $p = @()
+            
+            if ($zone){
+                $p += "--zone=$zone"
+            }
+
             $response = az container create `
                 -g $using:resourceGroup.name `
                 --name $containerName `
@@ -143,14 +151,14 @@ function Add-Containers {
                 --memory $using:containerConfig.memory `
                 --restart-policy $using:containerConfig.restartPolicy `
                 --secure-environment-variables $using:containerSecureEnvironmentVars `
-                --environment-variables $using:containerEnvironmentVars `
-                --zone $using:config.ZONE
+                --environment-variables $using:containerEnvironmentVars $p
+                
 
             if ($LastExitCode -ne 0) {
                 throw "Error: $response"
             }
 
-        } -ArgumentList $containerName
+        } -ArgumentList @($containerName, $zone)
 
         Write-Host "Running Job - ContainerName: $($containerName)..."
     }

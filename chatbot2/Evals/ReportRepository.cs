@@ -1,6 +1,5 @@
 ﻿using Azure.Storage.Blobs;
 using chatbot2.Configuration;
-using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
@@ -8,14 +7,25 @@ namespace chatbot2.Evals;
 
 public class ReportRepository
 {
-    private readonly BlobContainerClient client;
-
+    private BlobContainerClient? client;
+    private readonly IConfig config;
+    private readonly object reportLock = new();
     public ReportRepository(IConfig config)
     {
-        var connectionString = config.AzureStorageConnectionString;
-        var svc = new BlobServiceClient(connectionString);
-        var containerName = Environment.GetEnvironmentVariable("AzureStorageContainerName") ?? throw new Exception("missing AzureStorageContainerName");
-        client = svc.GetBlobContainerClient(containerName);
+        this.config = config;
+    }
+
+    private BlobContainerClient GetClient()
+    {
+        lock (reportLock)
+        {
+            if (client is null)
+            {
+                var svc = new BlobServiceClient(config.AzureStorageConnectionString);                
+                client = svc.GetBlobContainerClient(config.EvaluationStorageName);
+            }
+            return client;
+        }
     }
 
     public async Task SaveAsync<T>(string name, T item) where T : class
@@ -31,13 +41,13 @@ public class ReportRepository
 
     public Task UploadAsync(string name, Stream stream)
     {
-        var blob = client.GetBlobClient(name);
+        var blob = GetClient().GetBlobClient(name);
         return blob.UploadAsync(stream, overwrite: true);
     }
 
     public async IAsyncEnumerable<(T Item, string BlobName)> GetAsync<T>(string path)
     {
-        await foreach (var b in client.GetBlobsAsync(prefix: path))
+        await foreach (var b in GetClient().GetBlobsAsync(prefix: path))
         {
             var item = await GetItemAsync<T>(b.Name);
             if (item is not null)
@@ -49,7 +59,7 @@ public class ReportRepository
 
     public async Task<T?> GetItemAsync<T>(string name)
     {
-        var client = this.client.GetBlobClient(name);
+        var client = this.GetClient().GetBlobClient(name);
         var content = await client.DownloadContentAsync();
         return await JsonSerializer.DeserializeAsync<T>(content.Value.Content.ToStream());
     }

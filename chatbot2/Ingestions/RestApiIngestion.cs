@@ -41,7 +41,7 @@ public class RestApiIngestion : IVectorDbIngestion
         this.httpClient.BaseAddress = new Uri(rcConfig.BaseUrl ?? throw new Exception("config url is invalid"));
     }
 
-    public async Task<List<SearchModel>> LoadDataAsync(CancellationToken cancellationToken)
+    public async Task<List<SearchModelDto>> LoadDataAsync(CancellationToken cancellationToken)
     {
         if (config.Mappings is null)
         {
@@ -63,7 +63,7 @@ public class RestApiIngestion : IVectorDbIngestion
             throw new Exception("config InitialRoute is invalid");
         }
 
-        List<SearchModel> results = [];
+        List<SearchModelDto> results = [];
         string? continuationRoute = config.InitialRoute;
 
         this.httpClient.DefaultRequestHeaders.Authorization = await restClientAuthHeaderProvider.GetAuthorizationHeader();
@@ -142,9 +142,9 @@ public class RestApiIngestion : IVectorDbIngestion
 
     const string DictionaryToJsonCoversion = "DictionaryToJson";
 
-    private static SearchModel Create(IDictionary<string, object> record, RestClientMapping[] mappings)
+    private static SearchModelDto Create(IDictionary<string, object> record, RestClientMapping[] mappings)
     {
-        var searchModel = new SearchModel
+        var searchModel = new SearchModelDto
         {
             Id = Guid.NewGuid().ToString(),
         };

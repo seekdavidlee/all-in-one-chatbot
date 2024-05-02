@@ -5,34 +5,36 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
 using chatbot2.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Text.Json;
 
 namespace chatbot2.VectorDbs;
 
 public class AzureAISearch : IVectorDb
 {
-    private readonly string collectionName;
-    private readonly SearchClient searchClient;
     private readonly SearchIndexClient searchIndexClient;
     private readonly IEmbedding embedding;
     private readonly IConfig config;
     private readonly ILogger<AzureAISearch> logger;
+    private readonly Uri azureSearchEndpoint;
+    private readonly AzureKeyCredential keyCredentials;
+    private readonly ConcurrentDictionary<string, SearchClient> searchClients = [];
 
     public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config, ILogger<AzureAISearch> logger)
     {
-        embedding = embeddings.GetSelectedEmbedding();
-        collectionName = Environment.GetEnvironmentVariable("CollectionName") ?? throw new Exception("Missing CollectionName");
-        Uri azureSearchEndpoint = new(Environment.GetEnvironmentVariable("AzureSearchEndpoint") ?? throw new Exception("Missing AzureSearchEndpoint"));
-        AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
+        embedding = embeddings.GetSelectedEmbedding(config);
+
+        azureSearchEndpoint = new(config.AzureSearchEndpoint);
+        keyCredentials = new(config.AzureSearchKey);
         searchIndexClient = new(azureSearchEndpoint, keyCredentials);
-        searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
+
         this.config = config;
         this.logger = logger;
     }
 
     public Task DeleteAsync()
     {
-        return searchIndexClient.DeleteIndexAsync(collectionName);
+        return searchIndexClient.DeleteIndexAsync(config.CollectionName);
     }
 
     const string VECTOR_PROFILE_NAME = "my-profile-config";
@@ -40,7 +42,7 @@ public class AzureAISearch : IVectorDb
 
     public async Task InitAsync()
     {
-        var searchIndex = new SearchIndex(collectionName);
+        var searchIndex = new SearchIndex(config.CollectionName);
         searchIndex.Fields.Add(new SimpleField("id", SearchFieldDataType.String) { IsKey = true });
         searchIndex.Fields.Add(new VectorSearchField("contentVector", config.TextEmbeddingVectorDimension, VECTOR_PROFILE_NAME));
         searchIndex.Fields.Add(new SimpleField("meta_json_string", SearchFieldDataType.String));
@@ -56,10 +58,21 @@ public class AzureAISearch : IVectorDb
         await searchIndexClient.CreateOrUpdateIndexAsync(searchIndex);
     }
 
-    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> models, CancellationToken cancellationToken)
+    private SearchClient GetSearchClient(string collectionName)
     {
-        var batch = IndexDocumentsBatch.Upload(models);
-        var response = await searchClient.IndexDocumentsAsync(batch, cancellationToken: cancellationToken);
+        if (!searchClients.TryGetValue(collectionName, out var searchClient))
+        {
+            searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
+            searchClients.TryAdd(collectionName, searchClient);
+        }
+
+        return searchClient;
+    }
+
+    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModelDto> models, CancellationToken cancellationToken, string? collectionName = null)
+    {
+        var batch = IndexDocumentsBatch.Upload(models.Select(x => (SearchModel)x));
+        var response = await GetSearchClient(collectionName ?? config.CollectionName).IndexDocumentsAsync(batch, cancellationToken: cancellationToken);
 
         int error = 0;
         int success = 0;
@@ -94,7 +107,7 @@ public class AzureAISearch : IVectorDb
             VectorSearch = vectorSearchOptions
         };
 
-        var results = await searchClient.SearchAsync<SearchModel>(searchOptions, cancellationToken);
+        var results = await GetSearchClient(config.CollectionName).SearchAsync<SearchModel>(searchOptions, cancellationToken);
 
         List<IndexedDocument> indexedDocuments = [];
         await foreach (var result in results.Value.GetResultsAsync())

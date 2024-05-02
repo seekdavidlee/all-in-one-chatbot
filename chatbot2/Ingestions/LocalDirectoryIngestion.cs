@@ -15,14 +15,14 @@ public class LocalDirectoryIngestion : IVectorDbIngestion
         this.logger = logger;
     }
 
-    public async Task<List<SearchModel>> LoadDataAsync(CancellationToken cancellationToken)
+    public async Task<List<SearchModelDto>> LoadDataAsync(CancellationToken cancellationToken)
     {
         var dataSourcePathsStr = (Environment.GetEnvironmentVariable("DataSourcePaths") ?? throw new Exception("Missing DataSourcePaths"));
         bool isBlob = dataSourcePathsStr.StartsWith(Util.BlobPrefix);
         string[] dataSourcePaths = (isBlob ? dataSourcePathsStr[Util.BlobPrefix.Length..] : dataSourcePathsStr).Split(',');
         var htmlReader = new HtmlReader(this.config, this.logger);
 
-        List<SearchModel> results = [];
+        List<SearchModelDto> results = [];
 
         foreach (var dataSourcePath in dataSourcePaths)
         {

@@ -1,4 +1,5 @@
-﻿using ChromaDBSharp.Client;
+﻿using chatbot2.Configuration;
+using ChromaDBSharp.Client;
 
 namespace chatbot2.VectorDbs;
 
@@ -8,18 +9,19 @@ public class ChromaDbClient : IVectorDb, IDisposable
     private HttpClient? httpClient;
     private ICollectionClient? collectionClient;
     private readonly IEmbedding embedding;
-    private readonly string collectionName;
+    private readonly IConfig config;
     private float? minimumScore = 0.8f;
 
-    public ChromaDbClient(IEnumerable<IEmbedding> embeddings)
+    public ChromaDbClient(IEnumerable<IEmbedding> embeddings, IConfig config)
     {
-        embedding = embeddings.GetSelectedEmbedding();
-        collectionName = Environment.GetEnvironmentVariable("CollectionName") ?? throw new Exception("Missing CollectionName");
+        embedding = embeddings.GetSelectedEmbedding(config);
+        this.config = config;
     }
 
     public void Dispose()
     {
-        httpClient.Dispose();
+        httpClient?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     public async Task InitAsync()
@@ -39,16 +41,21 @@ public class ChromaDbClient : IVectorDb, IDisposable
             }
         }
         var cols = await client.ListCollectionsAsync();
-        collectionClient = cols.Any(x => x.Name == collectionName) ?
-            await client.GetCollectionAsync(collectionName) :
-            await client.CreateCollectionAsync(collectionName);
+        collectionClient = cols.Any(x => x.Name == config.CollectionName) ?
+            await client.GetCollectionAsync(config.CollectionName) :
+            await client.CreateCollectionAsync(config.CollectionName);
     }
 
-    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModel> searchModels, CancellationToken cancellationToken)
+    public async Task<(int SuccessCount, int ErrorCount)> ProcessAsync(IEnumerable<SearchModelDto> searchModels, CancellationToken cancellationToken, string? collectionName = null)
     {
         if (collectionClient is null)
         {
             throw new Exception("CollectionClient is not initialized!");
+        }
+
+        if (collectionName is not null)
+        {
+            throw new NotImplementedException("this is not implemented yet!");
         }
 
         int error = 0;
@@ -83,7 +90,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
         {
             throw new Exception("CollectionClient is not initialized!");
         }
-        return collectionClient.DeleteAsync([collectionName]);
+        return collectionClient.DeleteAsync([config.CollectionName]);
     }
 
     public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)

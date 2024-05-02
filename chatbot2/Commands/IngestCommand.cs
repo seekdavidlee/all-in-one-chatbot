@@ -16,13 +16,12 @@ public class IngestCommand : ICommandAction
     private readonly ILogger<IngestCommand> logger;
     private readonly IConfig config;
     private readonly IVectorDb vectorDb;
-    private readonly IEmbedding embedding;
-
+    private readonly IIngestionProcessor ingestionProcessor;
     public IngestCommand(IEnumerable<IVectorDbIngestion> vectorDbIngestions,
         IEnumerable<IVectorDb> vectorDbs,
-        IEnumerable<IEmbedding> embeddings,
         IngestionReporter ingestionReporter,
         ILogger<IngestCommand> logger,
+        IEnumerable<IIngestionProcessor> ingestionProcessors,
         IConfig config)
     {
         this.vectorDbIngestions = vectorDbIngestions;
@@ -30,7 +29,7 @@ public class IngestCommand : ICommandAction
         this.logger = logger;
         this.config = config;
         vectorDb = vectorDbs.GetSelectedVectorDb();
-        embedding = embeddings.GetSelectedEmbedding();
+        ingestionProcessor = ingestionProcessors.GetIngestionProcessor(config);
     }
 
     public string Name => "ingest";
@@ -42,7 +41,7 @@ public class IngestCommand : ICommandAction
 
         Stopwatch timeLoading = new();
         timeLoading.Start();
-        ConcurrentBag<SearchModel> all = [];
+        ConcurrentBag<SearchModelDto> all = [];
 
         logger.LogInformation("loading data");
         var senderLoader = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken, vectorDbIngestions.Count()));
@@ -103,9 +102,13 @@ public class IngestCommand : ICommandAction
             indexRanges.Add((startIndex, all.Count - 1));
         }
 
-        foreach (var range in indexRanges)
+        foreach (var (start, end) in indexRanges)
         {
-            await senderProcessor.SendAsync(() => ProcessAsync(vectorDb, embedding, all, range.start, range.end, cancellationToken));
+            await senderProcessor.SendAsync(async () =>
+            {
+                var searchModels = all.GetSearchModels(start, end);
+                await ingestionProcessor.ProcessAsync(searchModels, config.CollectionName, cancellationToken);
+            });
         }
 
         senderProcessor.Complete();
@@ -113,44 +116,6 @@ public class IngestCommand : ICommandAction
 
         timeProcessing.Stop();
         logger.LogInformation("processing data took {timeProcessingInMilliseconds} ms", timeProcessing.ElapsedMilliseconds);
-    }
-
-    private async Task ProcessAsync(IVectorDb vectorDb, IEmbedding embedding, ConcurrentBag<SearchModel> bagSearchModels, int startIndex, int endIndex, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var searchModels = bagSearchModels.Skip(startIndex).Take(endIndex - startIndex).ToList();
-            this.ingestionReporter.IncrementSearchModelsProcessing(searchModels.Count);
-            this.ingestionReporter.IncrementEmbeddingHttpRequest();
-            var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(
-                x => x.ContentToVectorized ?? throw new Exception("ContentToVectorized is null")).ToArray(), cancellationToken);
-
-            for (var i = 0; i < searchModels.Count; i++)
-            {
-                searchModels[i].ContentVector = floatsList[i];
-            }
-
-            var (successCount, errorCount) = await vectorDb.ProcessAsync(searchModels, cancellationToken);
-            if (successCount > 0)
-            {
-                this.ingestionReporter.IncrementSearchModelsProcessed(successCount);
-            }
-            if (errorCount > 0)
-            {
-                this.ingestionReporter.IncrementSearchModelsErrored(errorCount);
-            }
-
-            if (successCount + errorCount != searchModels.Count)
-            {
-                logger.LogWarning("searchModels {searchModelsCount} does not match with indexed counts {searchModelsIndexedCounts}", searchModels.Count, successCount + errorCount);
-            }
-
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "error processing searchModels");
-            this.ingestionReporter.IncrementSearchModelsErrored(endIndex - startIndex);
-        }
     }
 
     private static readonly GptEncoding gptEncoding = GptEncoding.GetEncoding(Model.GetEncodingNameForModel(Environment.GetEnvironmentVariable("TextEmbeddingName")));
