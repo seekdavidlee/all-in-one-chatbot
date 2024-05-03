@@ -42,7 +42,7 @@ public class EvaluationMetricWorkflow
         };
 
         var prompt = await fileCache.GetFileContentAsync(config.PromptFilePath, cancellationToken);
-        List<EvaluationMetricRunResult> results = new();
+        List<EvaluationMetricRunResult> results = [];
         for (int i = 0; i < config.RunCount; i++)
         {
             var metricResult = new EvaluationMetricRunResult
