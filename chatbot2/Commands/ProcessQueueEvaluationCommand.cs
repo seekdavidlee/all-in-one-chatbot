@@ -1,45 +1,32 @@
-﻿using Azure.Storage.Blobs.Models;
-using Azure.Storage.Blobs.Specialized;
+﻿using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Queues;
 using chatbot2.Configuration;
-using chatbot2.Ingestions;
+using chatbot2.Evals;
+using chatbot2.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Text;
 using System.Text.Json;
 
 namespace chatbot2.Commands;
 
-public class ProcessQueueIngestionCommand : ICommandAction
+public class ProcessQueueEvaluationCommand : ICommandAction
 {
-    private readonly IIngestionProcessor ingestionProcessor;
-    private readonly ILogger<ProcessQueueIngestionCommand> logger;
-    private readonly IngestionReporter ingestionReporter;
+    private readonly ILogger<ProcessQueueEvaluationCommand> logger;
     private readonly IConfig config;
+    private readonly EvaluationRunner evaluationRunner;
     private readonly QueueClient queueClient;
+    public string Name => "ingest-queue-evals";
 
-    public string Name => "ingest-queue-processing";
-
-    public ProcessQueueIngestionCommand(
-        ILogger<ProcessQueueIngestionCommand> logger,
-        IEnumerable<IIngestionProcessor> ingestionProcessors,
-        IngestionReporter ingestionReporter,
-        IConfig config)
+    public ProcessQueueEvaluationCommand(ILogger<ProcessQueueEvaluationCommand> logger, IConfig config, EvaluationRunner evaluationRunner)
     {
-        ingestionProcessor = ingestionProcessors.GetIngestionProcessor(config);
         this.logger = logger;
-        this.ingestionReporter = ingestionReporter;
         this.config = config;
-        queueClient = new(config.AzureQueueConnectionString, config.IngestionQueueName);
+        this.evaluationRunner = evaluationRunner;
+        queueClient = new(config.AzureQueueConnectionString, config.EvaluationQueueName);
     }
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
-        using var timer = new Timer((o) => this.ingestionReporter.Report(),
-            null, TimeSpan.FromSeconds(config.IngestionReportEveryXSeconds), TimeSpan.FromSeconds(config.IngestionReportEveryXSeconds));
-
-        this.ingestionReporter.Init();
-
         logger.LogInformation("started listening for records...");
 
         DateTime? lastMessageReceived = null;
@@ -72,20 +59,23 @@ public class ProcessQueueIngestionCommand : ICommandAction
                     await Task.Delay(TimeSpan.FromMilliseconds(this.config.IngestionQueuePollingInterval), cancellationToken);
                     continue;
                 }
-                var queueModel = JsonSerializer.Deserialize<SearchModelQueueMessage>(Encoding.UTF8.GetString(msg.Value.Body.ToArray()));
-                if (queueModel is not null)
+                var gtModel = JsonSerializer.Deserialize<GroundTruthQueueMessage>(msg.Value.Body);
+                if (gtModel is not null)
                 {
                     lastMessageReceived = DateTime.UtcNow;
                     publishedLastMessageReceived = false;
-                    var blob = new BlockBlobClient(config.AzureStorageConnectionString, config.IngestionQueueStorageName, $"{queueModel.JobId}\\{queueModel.Id}");
+                    var blob = new BlockBlobClient(config.AzureStorageConnectionString, gtModel.GroudTruthStorageName, gtModel.GroudTruthName);
                     var cnt = await blob.DownloadContentAsync(cancellationToken);
-                    var models = JsonSerializer.Deserialize<List<SearchModelDto>>(Encoding.UTF8.GetString(cnt.Value.Content.ToArray()));
-
-                    if (models is not null)
+                    var gt = JsonSerializer.Deserialize<GroundTruth>(cnt.Value.Content);
+                    if (gt is null || gtModel.RunCount is null || gtModel.Metric is null || gtModel.ProjectPath is null)
                     {
-                        await ingestionProcessor.ProcessAsync(models, queueModel.CollectionName ?? config.CollectionName, cancellationToken);
+                        continue;
                     }
-                    await blob.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: cancellationToken);
+
+                    for (var i = 0; i < gtModel.RunCount; i++)
+                    {
+                        await evaluationRunner.RunAsync(gtModel.ProjectPath, gt, [gtModel.Metric], i, cancellationToken);
+                    }
                 }
                 else
                 {

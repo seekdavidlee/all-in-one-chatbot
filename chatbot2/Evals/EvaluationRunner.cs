@@ -27,11 +27,8 @@ public class EvaluationRunner
         this.logger = logger;
     }
 
-    public async Task RunAsync(int runCounts, string projectId, IEnumerable<GroundTruth> groundTruths, IEnumerable<EvaluationMetricConfig> metrics, CancellationToken cancellationToken)
+    public async Task RunAsync(int runCounts, string path, IEnumerable<GroundTruth> groundTruths, IEnumerable<EvaluationMetricConfig> metrics, CancellationToken cancellationToken)
     {
-        string path = $"{projectId}/{DateTime.UtcNow:yyyyMMdd}/{DateTime.UtcNow:hhmmss}";
-        await reportRepository.SaveAsync($"{path}/input.json", config);
-
         logger.LogInformation("starting evaluation runs: {path}", path);
 
         var blocks = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken));
@@ -62,31 +59,7 @@ public class EvaluationRunner
                         return;
                     }
 
-                    try
-                    {
-                        logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, index);
-                        var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, cancellationToken);
-                        if (answer is null)
-                        {
-                            return;
-                        }
-
-                        foreach (var metric in metrics)
-                        {
-                            logger.LogDebug("running metric {metric}", metric.Name);
-                            var metricResult = await evaluationMetricWorkflow.RunAsync(metric, groundTruth, answer, cancellationToken);
-                            if (metricResult is null)
-                            {
-                                return;
-                            }
-
-                            await reportRepository.SaveAsync($"{path}/eval-{Guid.NewGuid():N}.json", metricResult);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogError(e, "error running inference for '{question}', run: {count}", groundTruth.Question, index);
-                    }
+                    await RunAsync(path, groundTruth, metrics, index, cancellationToken);
                 });
             }
         }
@@ -95,5 +68,39 @@ public class EvaluationRunner
         await blocks.Completion;
 
         logger.LogInformation("evaluation runs completed for: {path}", path);
+    }
+
+    public async Task RunAsync(string path, GroundTruth groundTruth, IEnumerable<EvaluationMetricConfig> metrics, int index, CancellationToken cancellationToken)
+    {
+        if (groundTruth.Question is null)
+        {
+            return;
+        }
+
+        try
+        {
+            logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, index);
+            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, cancellationToken);
+            if (answer is null)
+            {
+                return;
+            }
+
+            foreach (var metric in metrics)
+            {
+                logger.LogDebug("running metric {metric}", metric.Name);
+                var metricResult = await evaluationMetricWorkflow.RunAsync(metric, groundTruth, answer, cancellationToken);
+                if (metricResult is null)
+                {
+                    return;
+                }
+
+                await reportRepository.SaveAsync($"{path}/eval-{Guid.NewGuid():N}.json", metricResult);
+            }
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "error running inference for '{question}', run: {count}", groundTruth.Question, index);
+        }
     }
 }

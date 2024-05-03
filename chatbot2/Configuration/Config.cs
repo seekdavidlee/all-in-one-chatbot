@@ -22,8 +22,9 @@ public class Config : IConfig
         this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
         this.Concurrency = this.config.Get<int>("Concurrency", int.Parse);
         this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", int.Parse);
-        this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 5 : int.Parse(v));
+        this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 15 : int.Parse(v));
         this.IngestionQueueName = this.config.Get<string>("IngestionQueueName");
+        this.EvaluationQueueName = this.config.Get<string>("EvaluationQueueName");
         this.IngestionProcessorType = this.config.Get<string>("IngestionProcessorType");
         this.IngestionQueueStorageName = this.config.Get<string>("IngestionQueueStorageName");
         this.AzureQueueConnectionString = this.config.GetSecret<string>("AzureQueueConnectionString").GetAwaiter().GetResult();
@@ -44,6 +45,7 @@ public class Config : IConfig
     public string OpenTelemetryConnectionString { get; }
     public int IngestionQueuePollingInterval { get; }
     public string IngestionQueueName { get; }
+    public string EvaluationQueueName { get; }
     public string AzureQueueConnectionString { get; }
     public string[] IngestionTypes { get; }
     public string LogLevel { get; }
@@ -83,6 +85,7 @@ public class Config : IConfig
         this.config.Require("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
         this.config.Require("IngestionReportEveryXSeconds", this.IngestionReportEveryXSeconds, hideValue: false);
         this.config.Optional("IngestionQueueName", this.IngestionQueueName, hideValue: false);
+        this.config.Optional("EvaluationQueueName", this.EvaluationQueueName, hideValue: false);
         this.config.Optional("IngestionProcessorType", this.IngestionProcessorType, hideValue: false);
         this.config.Optional("AzureQueueConnectionString", this.AzureQueueConnectionString, hideValue: true);
         this.config.Optional("IngestionQueueStorageName", this.IngestionQueueStorageName, hideValue: false);

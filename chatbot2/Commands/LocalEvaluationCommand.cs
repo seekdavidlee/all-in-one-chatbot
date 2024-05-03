@@ -1,10 +1,7 @@
-﻿using chatbot2.Configuration;
-using chatbot2.Evals;
-using chatbot2.Inferences;
+﻿using chatbot2.Evals;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Threading.Tasks.Dataflow;
 
 namespace chatbot2.Commands;
 
@@ -13,27 +10,20 @@ public class LocalEvaluationCommand : ICommandAction
     private readonly EvaluationRunner evaluationRunner;
     private readonly ReportRepository reportRepository;
     private readonly GroundTruthIngestion groundTruthIngestion;
-    private readonly EvaluationMetricWorkflow evaluationMetricWorkflow;
-    private readonly InferenceWorkflow inferenceWorkflow;
+
     private readonly ILogger<LocalEvaluationCommand> logger;
-    private readonly IConfig cbConfig;
+
 
     public LocalEvaluationCommand(
         EvaluationRunner evaluationRunner,
         ReportRepository reportRepository,
         GroundTruthIngestion groundTruthIngestion,
-        EvaluationMetricWorkflow evaluationMetricWorkflow,
-        InferenceWorkflow inferenceWorkflow,
-        ILogger<LocalEvaluationCommand> logger,
-        IConfig cbConfig)
+        ILogger<LocalEvaluationCommand> logger)
     {
         this.evaluationRunner = evaluationRunner;
         this.reportRepository = reportRepository;
         this.groundTruthIngestion = groundTruthIngestion;
-        this.evaluationMetricWorkflow = evaluationMetricWorkflow;
-        this.inferenceWorkflow = inferenceWorkflow;
         this.logger = logger;
-        this.cbConfig = cbConfig;
     }
 
     public string Name => "local-evals";
@@ -104,6 +94,7 @@ public class LocalEvaluationCommand : ICommandAction
 
         logger.LogInformation("starting evaluation runs: {path}", path);
 
+        string projPath = $"{config.ProjectId}/{DateTime.UtcNow:yyyyMMdd}/{DateTime.UtcNow:hhmmss}";
         foreach (var group in groups)
         {
             if (cancellationToken.IsCancellationRequested)
@@ -111,7 +102,7 @@ public class LocalEvaluationCommand : ICommandAction
                 return;
             }
 
-            await evaluationRunner.RunAsync(config.RunCount.Value, config.ProjectId, group.Value, config.Metrics, cancellationToken);
+            await evaluationRunner.RunAsync(config.RunCount.Value, projPath, group.Value, config.Metrics, cancellationToken);
         }
 
         logger.LogInformation("evaluation runs completed for: {path}", path);

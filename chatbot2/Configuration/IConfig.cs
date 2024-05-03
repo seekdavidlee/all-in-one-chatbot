@@ -18,6 +18,7 @@ public interface IConfig
     int IngestionBatchSize { get; }
     public int IngestionReportEveryXSeconds { get; }
     string IngestionQueueName { get; }
+    string EvaluationQueueName { get;}
     string IngestionProcessorType { get; }
     string IngestionQueueStorageName { get; }
     string CollectionName { get; }

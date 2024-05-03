@@ -1,6 +1,8 @@
 ﻿using Azure.Storage.Blobs;
+using Azure.Storage.Queues;
 using chatbot2.Configuration;
 using chatbot2.Evals;
+using chatbot2.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -12,12 +14,14 @@ public class RemoteEvaluationCommand : ICommandAction
     private readonly ILogger logger;
     private readonly IConfig config;
     private readonly EvaluationRunner evaluationRunner;
+    private readonly ReportRepository reportRepository;
 
-    public RemoteEvaluationCommand(ILogger<RemoteEvaluationCommand> logger, IConfig config, EvaluationRunner evaluationRunner)
+    public RemoteEvaluationCommand(ILogger<RemoteEvaluationCommand> logger, IConfig config, EvaluationRunner evaluationRunner, ReportRepository reportRepository)
     {
         this.logger = logger;
         this.config = config;
         this.evaluationRunner = evaluationRunner;
+        this.reportRepository = reportRepository;
     }
 
     public string Name => "remote-evals";
@@ -51,6 +55,13 @@ public class RemoteEvaluationCommand : ICommandAction
             return;
         }
 
+        string mode = argsConfiguration["remote-evals-mode"] ?? "";
+        QueueClient? queueClient = null;
+        if (mode == "Queue")
+        {
+            queueClient = new(config.AzureQueueConnectionString, config.EvaluationQueueName);
+        }
+
         var groundTruthsContainer = new BlobContainerClient(config.AzureStorageConnectionString, config.GroundTruthStorageName);
 
         List<EvaluationMetricConfig> metrics = [];
@@ -80,6 +91,10 @@ public class RemoteEvaluationCommand : ICommandAction
         {
             top = pickTopGroundTruthsTop;
         }
+
+        string projPath = $"{evalConfig.ProjectId}/{DateTime.UtcNow:yyyyMMdd}/{DateTime.UtcNow:hhmmss}";
+        await reportRepository.SaveAsync($"{projPath}/input.json", config);
+
         List<GroundTruth> groundTruths = [];
         await foreach (var gt in groundTruthsContainer.GetBlobsAsync(prefix: $"{evalConfig.ProjectId}/{evalConfig.GroundTruthVersionId}"))
         {
@@ -88,9 +103,31 @@ public class RemoteEvaluationCommand : ICommandAction
                 return;
             }
 
-            var blob = new BlobClient(config.AzureStorageConnectionString, config.GroundTruthStorageName, gt.Name);
-            var response = await blob.DownloadContentAsync();
-            groundTruths.Add(JsonSerializer.Deserialize<GroundTruth>(response.Value.Content) ?? throw new Exception("unable to deserialize groundtruth blob"));
+            if (string.IsNullOrEmpty(mode))
+            {
+                var blob = new BlobClient(config.AzureStorageConnectionString, config.GroundTruthStorageName, gt.Name);
+                var response = await blob.DownloadContentAsync(cancellationToken);
+                groundTruths.Add(JsonSerializer.Deserialize<GroundTruth>(response.Value.Content) ?? throw new Exception("unable to deserialize groundtruth blob"));
+            }
+            else
+            {
+                if (queueClient is null)
+                {
+                    continue;
+                }
+
+                foreach (var m in metrics)
+                {
+                    await queueClient.SendMessageAsync(JsonSerializer.Serialize(new GroundTruthQueueMessage
+                    {
+                        GroudTruthName = gt.Name,
+                        GroudTruthStorageName = config.GroundTruthStorageName,
+                        RunCount = evalConfig.RunCount,
+                        ProjectPath = projPath,
+                        Metric = m
+                    }), cancellationToken);
+                }
+            }
 
             if (top is not null && top == groundTruths.Count)
             {
@@ -98,6 +135,9 @@ public class RemoteEvaluationCommand : ICommandAction
             }
         }
 
-        await evaluationRunner.RunAsync(evalConfig.RunCount.Value, evalConfig.ProjectId, groundTruths, metrics, cancellationToken);
+        if (string.IsNullOrEmpty(mode))
+        {
+            await evaluationRunner.RunAsync(evalConfig.RunCount.Value, projPath, groundTruths, metrics, cancellationToken);
+        }
     }
 }
