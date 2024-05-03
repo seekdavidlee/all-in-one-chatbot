@@ -39,6 +39,12 @@ public class ImportGroundTruthsCommand : ICommandAction
             return;
         }
 
+        if (groundTruthsConfig.GroundTruthsMapping is null)
+        {
+            logger.LogWarning("missing GroundTruthsMapping");
+            return;
+        }
+
         var groundTruths = await groundTruthIngestion.RunAsync(groundTruthsConfig, cancellationToken);
 
         if (cancellationToken.IsCancellationRequested)
@@ -49,6 +55,12 @@ public class ImportGroundTruthsCommand : ICommandAction
         if (!groundTruths.Any())
         {
             logger.LogWarning("no ground truths found per configuration file-path {configFilePath}", configFilePath);
+            return;
+        }
+
+        if (groundTruthsConfig.ProjectId is null || groundTruthsConfig.GroundTruthVersionId is null)
+        {
+            logger.LogWarning("ProjectId or GroundTruthVersionId is not set");
             return;
         }
 

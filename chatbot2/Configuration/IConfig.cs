@@ -25,5 +25,6 @@ public interface IConfig
     string EmbeddingType { get; }
     string EvaluationStorageName { get; }
     string GroundTruthStorageName { get; }
+    string ProjectStorageName { get; }
     void Validate();
 }

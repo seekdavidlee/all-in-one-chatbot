@@ -32,6 +32,7 @@ public class Config : IConfig
         this.IngestionQueuePollingInterval = this.config.Get<int>("IngestionQueuePollingInterval", v => v is null ? 1000 : int.Parse(v));
         this.EvaluationStorageName = this.config.Get<string>("EvaluationStorageName");
         this.GroundTruthStorageName = this.config.Get<string>("GroundTruthStorageName");
+        this.ProjectStorageName = this.config.Get<string>("ProjectStorageName");
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -64,6 +65,7 @@ public class Config : IConfig
 
     public string EvaluationStorageName { get; }
     public string GroundTruthStorageName { get; }
+    public string ProjectStorageName { get; }
 
     public void Validate()
     {
@@ -89,5 +91,6 @@ public class Config : IConfig
         this.config.Optional("IngestionQueuePollingInterval", this.IngestionQueuePollingInterval, hideValue: false);
         this.config.Optional("EvaluationStorageName", this.EvaluationStorageName, hideValue: false);
         this.config.Optional("GroundTruthStorageName", this.GroundTruthStorageName, hideValue: true);
+        this.config.Optional("ProjectStorageName", this.ProjectStorageName, hideValue: true);
     }
 }

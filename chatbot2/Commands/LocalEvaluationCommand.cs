@@ -8,21 +8,21 @@ using System.Threading.Tasks.Dataflow;
 
 namespace chatbot2.Commands;
 
-public class EvaluationCommand : ICommandAction
+public class LocalEvaluationCommand : ICommandAction
 {
     private readonly ReportRepository reportRepository;
     private readonly GroundTruthIngestion groundTruthIngestion;
     private readonly EvaluationMetricWorkflow evaluationMetricWorkflow;
     private readonly InferenceWorkflow inferenceWorkflow;
-    private readonly ILogger<EvaluationCommand> logger;
+    private readonly ILogger<LocalEvaluationCommand> logger;
     private readonly IConfig cbConfig;
 
-    public EvaluationCommand(
+    public LocalEvaluationCommand(
         ReportRepository reportRepository,
         GroundTruthIngestion groundTruthIngestion,
         EvaluationMetricWorkflow evaluationMetricWorkflow,
         InferenceWorkflow inferenceWorkflow,
-        ILogger<EvaluationCommand> logger,
+        ILogger<LocalEvaluationCommand> logger,
         IConfig cbConfig)
     {
         this.reportRepository = reportRepository;
@@ -33,7 +33,7 @@ public class EvaluationCommand : ICommandAction
         this.cbConfig = cbConfig;
     }
 
-    public string Name => "evals";
+    public string Name => "local-evals";
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
