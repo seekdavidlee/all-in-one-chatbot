@@ -58,7 +58,13 @@ public class EvaluationCommand : ICommandAction
             return;
         }
 
-        var groundTruths = await groundTruthIngestion.RunAsync(config);
+        var groundTruths = await groundTruthIngestion.RunAsync(config, cancellationToken);
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+
         if (!groundTruths.Any())
         {
             logger.LogWarning("no ground truths found per configuration file-path {configFilePath}", configFilePath);

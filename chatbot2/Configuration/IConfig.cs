@@ -24,5 +24,6 @@ public interface IConfig
     string AzureQueueConnectionString { get; }
     string EmbeddingType { get; }
     string EvaluationStorageName { get; }
+    string GroundTruthStorageName { get; }
     void Validate();
 }
