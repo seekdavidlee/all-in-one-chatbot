@@ -10,6 +10,7 @@ namespace chatbot2.Commands;
 
 public class LocalEvaluationCommand : ICommandAction
 {
+    private readonly EvaluationRunner evaluationRunner;
     private readonly ReportRepository reportRepository;
     private readonly GroundTruthIngestion groundTruthIngestion;
     private readonly EvaluationMetricWorkflow evaluationMetricWorkflow;
@@ -18,6 +19,7 @@ public class LocalEvaluationCommand : ICommandAction
     private readonly IConfig cbConfig;
 
     public LocalEvaluationCommand(
+        EvaluationRunner evaluationRunner,
         ReportRepository reportRepository,
         GroundTruthIngestion groundTruthIngestion,
         EvaluationMetricWorkflow evaluationMetricWorkflow,
@@ -25,6 +27,7 @@ public class LocalEvaluationCommand : ICommandAction
         ILogger<LocalEvaluationCommand> logger,
         IConfig cbConfig)
     {
+        this.evaluationRunner = evaluationRunner;
         this.reportRepository = reportRepository;
         this.groundTruthIngestion = groundTruthIngestion;
         this.evaluationMetricWorkflow = evaluationMetricWorkflow;
@@ -55,6 +58,18 @@ public class LocalEvaluationCommand : ICommandAction
         if (config.Metrics is null)
         {
             logger.LogWarning("config metrics is not set");
+            return;
+        }
+
+        if (config.RunCount is null)
+        {
+            logger.LogWarning("config RunCount is not set");
+            return;
+        }
+
+        if (config.ProjectId is null)
+        {
+            logger.LogWarning("config ProjectId is not set");
             return;
         }
 
@@ -89,60 +104,15 @@ public class LocalEvaluationCommand : ICommandAction
 
         logger.LogInformation("starting evaluation runs: {path}", path);
 
-        var blocks = new ActionBlock<Func<Task>>((action) => action(), cbConfig.GetDataflowOptions(cancellationToken));
-
         foreach (var group in groups)
         {
-            foreach (var groundTruth in group.Value)
+            if (cancellationToken.IsCancellationRequested)
             {
-                if (groundTruth.Question is null)
-                {
-                    continue;
-                }
-
-                for (var i = 0; i < config.RunCount; i++)
-                {
-                    var index = i;
-                    await blocks.SendAsync(async () =>
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            logger.LogDebug("cancelled inference for '{question}', run: {count}", groundTruth.Question, index);
-                            return;
-                        }
-
-                        try
-                        {
-                            logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, index);
-                            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, cancellationToken);
-                            if (answer is null)
-                            {
-                                return;
-                            }
-
-                            foreach (var metric in config.Metrics)
-                            {
-                                logger.LogDebug("running metric {metric}", metric.Name);
-                                var metricResult = await evaluationMetricWorkflow.RunAsync(metric, groundTruth, answer);
-                                if (metricResult is null)
-                                {
-                                    return;
-                                }
-
-                                await reportRepository.SaveAsync($"{path}/eval-{Guid.NewGuid():N}.json", metricResult);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            logger.LogError(e, "error running inference for '{question}', run: {count}", groundTruth.Question, index);
-                        }
-                    });
-                }
+                return;
             }
-        }
 
-        blocks.Complete();
-        await blocks.Completion;
+            await evaluationRunner.RunAsync(config.RunCount.Value, config.ProjectId, group.Value, config.Metrics, cancellationToken);
+        }
 
         logger.LogInformation("evaluation runs completed for: {path}", path);
     }

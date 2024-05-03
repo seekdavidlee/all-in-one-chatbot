@@ -18,7 +18,7 @@ public class EvaluationMetricWorkflow
         this.logger = logger;
     }
 
-    public async Task<EvaluationMetricResult?> RunAsync(EvaluationMetricConfig config, GroundTruth groundTruth, InferenceOutput output)
+    public async Task<EvaluationMetricResult?> RunAsync(EvaluationMetricConfig config, GroundTruth groundTruth, InferenceOutput output, CancellationToken cancellationToken)
     {
         if (config.PromptFilePath is null)
         {
@@ -41,7 +41,7 @@ public class EvaluationMetricWorkflow
             GroundTruth = groundTruth,
         };
 
-        var prompt = await fileCache.GetFileContentAsync(config.PromptFilePath);
+        var prompt = await fileCache.GetFileContentAsync(config.PromptFilePath, cancellationToken);
         List<EvaluationMetricRunResult> results = new();
         for (int i = 0; i < config.RunCount; i++)
         {

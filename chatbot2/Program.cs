@@ -52,6 +52,8 @@ services.AddSingleton<ICommandAction, ShowEvaluationMetricResultCommand>();
 services.AddSingleton<ICommandAction, ProcessQueueIngestionCommand>();
 services.AddSingleton<ICommandAction, ImportGroundTruthsCommand>();
 services.AddSingleton<ICommandAction, ImportMetricsCommand>();
+services.AddSingleton<ICommandAction, RemoteEvaluationCommand>();
+services.AddSingleton<EvaluationRunner>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
 services.AddSingleton<InferenceWorkflow>();
