@@ -13,7 +13,7 @@ public class GroundTruthIngestion
         this.logger = logger;
     }
 
-    public async Task<IEnumerable<GroundTruth>> RunAsync(EvaluationConfig config)
+    public async Task<IEnumerable<GroundTruth>> RunAsync(EvaluationConfig config, CancellationToken cancellationToken)
     {
         if (config.GroundTruthsMapping is null)
         {
@@ -25,6 +25,10 @@ public class GroundTruthIngestion
 
         foreach (var mapping in config.GroundTruthsMapping)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
             var dataSource = groundTruthDataSources.FirstOrDefault(x => x.Name == mapping.Reader);
             if (dataSource is null)
             {

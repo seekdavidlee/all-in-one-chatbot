@@ -18,11 +18,14 @@ public interface IConfig
     int IngestionBatchSize { get; }
     public int IngestionReportEveryXSeconds { get; }
     string IngestionQueueName { get; }
+    string EvaluationQueueName { get;}
     string IngestionProcessorType { get; }
     string IngestionQueueStorageName { get; }
     string CollectionName { get; }
     string AzureQueueConnectionString { get; }
     string EmbeddingType { get; }
     string EvaluationStorageName { get; }
+    string GroundTruthStorageName { get; }
+    string ProjectStorageName { get; }
     void Validate();
 }

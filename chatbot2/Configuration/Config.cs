@@ -22,8 +22,9 @@ public class Config : IConfig
         this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
         this.Concurrency = this.config.Get<int>("Concurrency", int.Parse);
         this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", int.Parse);
-        this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 5 : int.Parse(v));
+        this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 15 : int.Parse(v));
         this.IngestionQueueName = this.config.Get<string>("IngestionQueueName");
+        this.EvaluationQueueName = this.config.Get<string>("EvaluationQueueName");
         this.IngestionProcessorType = this.config.Get<string>("IngestionProcessorType");
         this.IngestionQueueStorageName = this.config.Get<string>("IngestionQueueStorageName");
         this.AzureQueueConnectionString = this.config.GetSecret<string>("AzureQueueConnectionString").GetAwaiter().GetResult();
@@ -31,6 +32,8 @@ public class Config : IConfig
         this.EmbeddingType = this.config.Get<string>("EmbeddingType");
         this.IngestionQueuePollingInterval = this.config.Get<int>("IngestionQueuePollingInterval", v => v is null ? 1000 : int.Parse(v));
         this.EvaluationStorageName = this.config.Get<string>("EvaluationStorageName");
+        this.GroundTruthStorageName = this.config.Get<string>("GroundTruthStorageName");
+        this.ProjectStorageName = this.config.Get<string>("ProjectStorageName");
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -42,6 +45,7 @@ public class Config : IConfig
     public string OpenTelemetryConnectionString { get; }
     public int IngestionQueuePollingInterval { get; }
     public string IngestionQueueName { get; }
+    public string EvaluationQueueName { get; }
     public string AzureQueueConnectionString { get; }
     public string[] IngestionTypes { get; }
     public string LogLevel { get; }
@@ -62,6 +66,8 @@ public class Config : IConfig
     public string EmbeddingType { get; }
 
     public string EvaluationStorageName { get; }
+    public string GroundTruthStorageName { get; }
+    public string ProjectStorageName { get; }
 
     public void Validate()
     {
@@ -72,13 +78,14 @@ public class Config : IConfig
         this.config.Optional("CustomAuthProviderUrl", this.CustomAuthProviderUrl, hideValue: true);
         this.config.Optional("AzureStorageConnectionString", this.AzureStorageConnectionString, hideValue: true);
         this.config.Require("OpenTelemetryConnectionString", this.OpenTelemetryConnectionString, hideValue: false);
-        this.config.Require("IngestionTypes", this.IngestionTypes, hideValue: false);
+        this.config.Optional("IngestionTypes", this.IngestionTypes, hideValue: false);
         this.config.Require("LogLevel", this.LogLevel, hideValue: false);
         this.config.Require("TextEmbeddingVectorDimension", this.TextEmbeddingVectorDimension, hideValue: false);
         this.config.Require("Concurrency", this.Concurrency, hideValue: false);
         this.config.Require("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
         this.config.Require("IngestionReportEveryXSeconds", this.IngestionReportEveryXSeconds, hideValue: false);
         this.config.Optional("IngestionQueueName", this.IngestionQueueName, hideValue: false);
+        this.config.Optional("EvaluationQueueName", this.EvaluationQueueName, hideValue: false);
         this.config.Optional("IngestionProcessorType", this.IngestionProcessorType, hideValue: false);
         this.config.Optional("AzureQueueConnectionString", this.AzureQueueConnectionString, hideValue: true);
         this.config.Optional("IngestionQueueStorageName", this.IngestionQueueStorageName, hideValue: false);
@@ -86,5 +93,7 @@ public class Config : IConfig
         this.config.Optional("EmbeddingType", this.EmbeddingType, hideValue: false);
         this.config.Optional("IngestionQueuePollingInterval", this.IngestionQueuePollingInterval, hideValue: false);
         this.config.Optional("EvaluationStorageName", this.EvaluationStorageName, hideValue: false);
+        this.config.Optional("GroundTruthStorageName", this.GroundTruthStorageName, hideValue: true);
+        this.config.Optional("ProjectStorageName", this.ProjectStorageName, hideValue: true);
     }
 }

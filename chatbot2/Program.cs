@@ -46,10 +46,15 @@ foreach (var ingestionType in config.IngestionTypes)
 services.AddSingleton<ICommandAction, ChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();
-services.AddSingleton<ICommandAction, EvaluationCommand>();
+services.AddSingleton<ICommandAction, LocalEvaluationCommand>();
 services.AddSingleton<ICommandAction, EvaluationSummarizeCommand>();
 services.AddSingleton<ICommandAction, ShowEvaluationMetricResultCommand>();
 services.AddSingleton<ICommandAction, ProcessQueueIngestionCommand>();
+services.AddSingleton<ICommandAction, ImportGroundTruthsCommand>();
+services.AddSingleton<ICommandAction, ImportMetricsCommand>();
+services.AddSingleton<ICommandAction, RemoteEvaluationCommand>();
+services.AddSingleton<ICommandAction, ProcessQueueEvaluationCommand>();
+services.AddSingleton<EvaluationRunner>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
 services.AddSingleton<InferenceWorkflow>();
