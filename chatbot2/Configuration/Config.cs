@@ -34,6 +34,10 @@ public class Config : IConfig
         this.EvaluationStorageName = this.config.Get<string>("EvaluationStorageName");
         this.GroundTruthStorageName = this.config.Get<string>("GroundTruthStorageName");
         this.ProjectStorageName = this.config.Get<string>("ProjectStorageName");
+        this.InferenceQueueName = this.config.Get<string>("InferenceQueueName");
+        this.InferenceResponseQueueName = this.config.Get<string>("InferenceResponseQueueName");
+        this.InferenceProcessorType = this.config.Get<string>("InferenceProcessorType");
+        this.MessageDequeueCount = this.config.Get<int>("MessageDequeueCount", v => v is null ? 5 : int.Parse(v));
     }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
@@ -44,30 +48,26 @@ public class Config : IConfig
     public string AzureStorageConnectionString { get; }
     public string OpenTelemetryConnectionString { get; }
     public int IngestionQueuePollingInterval { get; }
+    public string InferenceQueueName { get; }
     public string IngestionQueueName { get; }
     public string EvaluationQueueName { get; }
+    public string InferenceResponseQueueName { get; }
     public string AzureQueueConnectionString { get; }
     public string[] IngestionTypes { get; }
     public string LogLevel { get; }
-
     public int TextEmbeddingVectorDimension { get; }
-
     public int IngestionBatchSize { get; }
-
     public int Concurrency { get; }
-
     public int IngestionReportEveryXSeconds { get; }
+    public int MessageDequeueCount { get; }
     public string IngestionQueueStorageName { get; }
-
     public string IngestionProcessorType { get; }
-
     public string CollectionName { get; }
-
     public string EmbeddingType { get; }
-
     public string EvaluationStorageName { get; }
     public string GroundTruthStorageName { get; }
     public string ProjectStorageName { get; }
+    public string InferenceProcessorType { get; }
 
     public void Validate()
     {
@@ -95,5 +95,9 @@ public class Config : IConfig
         this.config.Optional("EvaluationStorageName", this.EvaluationStorageName, hideValue: false);
         this.config.Optional("GroundTruthStorageName", this.GroundTruthStorageName, hideValue: true);
         this.config.Optional("ProjectStorageName", this.ProjectStorageName, hideValue: true);
+        this.config.Optional("InferenceQueueName", this.InferenceQueueName, hideValue: false);
+        this.config.Optional("InferenceResponseQueueName", this.InferenceResponseQueueName, hideValue: false);
+        this.config.Optional("InferenceProcessorType", this.InferenceProcessorType, hideValue: false);
+        this.config.Optional("MessageDequeueCount", this.MessageDequeueCount, hideValue: false);
     }
 }

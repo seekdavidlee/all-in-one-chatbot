@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace chatbot2.Inferences;
 
-public class InferenceWorkflow
+public class InferenceWorkflow : IInferenceWorkflow
 {
     private readonly ILanguageModel languageModel;
     private readonly IVectorDb vectorDb;
@@ -21,7 +21,7 @@ public class InferenceWorkflow
 
     private readonly SemaphoreSlim semaphore = new(1, 1);
     private bool isVectorDbInitialized;
-    public async Task<InferenceOutput> ExecuteAsync(string userInput, CancellationToken cancellationToken, ChatHistory? chatHistory = null)
+    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, CancellationToken cancellationToken)
     {
         await semaphore.WaitAsync();
         try

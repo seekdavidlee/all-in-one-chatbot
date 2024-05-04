@@ -1,4 +1,5 @@
 ﻿using chatbot2.Configuration;
+using chatbot2.Inferences;
 using chatbot2.Ingestions;
 using chatbot2.VectorDbs;
 using System.Collections.Concurrent;
@@ -64,5 +65,10 @@ public static class Util
     public static IIngestionProcessor GetIngestionProcessor(this IEnumerable<IIngestionProcessor> processors, IConfig config)
     {
         return processors.Single(x => x.GetType().Name == config.IngestionProcessorType);
+    }
+
+    public static IInferenceWorkflow GetInferenceWorkflow(this IEnumerable<IInferenceWorkflow> inferenceWorkflows, IConfig config)
+    {
+        return inferenceWorkflows.Single(x => x.GetType().Name == config.InferenceProcessorType);
     }
 }

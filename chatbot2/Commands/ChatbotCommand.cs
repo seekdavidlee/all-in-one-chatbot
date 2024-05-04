@@ -1,4 +1,5 @@
-﻿using chatbot2.Inferences;
+﻿using chatbot2.Configuration;
+using chatbot2.Inferences;
 using chatbot2.Llms;
 using Microsoft.Extensions.Configuration;
 
@@ -6,11 +7,11 @@ namespace chatbot2.Commands;
 
 public class ChatbotCommand : ICommandAction
 {
-    private readonly InferenceWorkflow inferenceWorkflow;
+    private readonly IInferenceWorkflow inferenceWorkflow;
 
-    public ChatbotCommand(InferenceWorkflow inferenceWorkflow)
+    public ChatbotCommand(IConfig config, IEnumerable<IInferenceWorkflow> inferenceWorkflows)
     {
-        this.inferenceWorkflow = inferenceWorkflow;
+        this.inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
     }
 
     public string Name => "chatbot";
@@ -31,7 +32,7 @@ public class ChatbotCommand : ICommandAction
 
             var chatEntry = new ChatEntry { User = userInput };
 
-            var result = await this.inferenceWorkflow.ExecuteAsync(userInput, cancellationToken, chatHistory);
+            var result = await this.inferenceWorkflow.ExecuteAsync(userInput, chatHistory, cancellationToken);
 
             chatEntry.Bot = result.Text;
             chatEntry.UserTokens = result.PromptTokens;
