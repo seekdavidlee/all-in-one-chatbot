@@ -10,17 +10,17 @@ namespace chatbot2.Commands;
 public abstract class QueueCommandBase<T> : ICommandAction
 {
     private readonly string commandName;
+    private readonly string queueName;
     private readonly ILogger logger;
     private readonly IConfig config;
-    private readonly QueueClient queueClient;
-    private readonly QueueClient poisonQueueClient;
+    private QueueClient? queueClient;
+    private QueueClient? poisonQueueClient;
     protected QueueCommandBase(string commandName, string queueName, ILogger logger, IConfig config)
     {
         this.commandName = commandName;
+        this.queueName = queueName;
         this.logger = logger;
         this.config = config;
-        queueClient = new QueueClient(config.AzureQueueConnectionString, queueName);
-        poisonQueueClient = new QueueClient(config.AzureQueueConnectionString, $"poison-{queueName}");
     }
 
     protected abstract Task ProcessMessageAsync(T message, CancellationToken cancellationToken);
@@ -32,6 +32,16 @@ public abstract class QueueCommandBase<T> : ICommandAction
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
+        if (queueClient is null)
+        {
+            queueClient = new QueueClient(config.AzureQueueConnectionString, queueName);
+        }
+
+        if (poisonQueueClient is null)
+        {
+            poisonQueueClient = new QueueClient(config.AzureQueueConnectionString, $"poison-{queueName}");
+        }
+
         await InitAsync();
 
         logger.LogInformation("started listening for records...");

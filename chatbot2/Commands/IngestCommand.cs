@@ -15,8 +15,8 @@ public class IngestCommand : ICommandAction
     private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<IngestCommand> logger;
     private readonly IConfig config;
-    private readonly IVectorDb vectorDb;
-    private readonly IIngestionProcessor ingestionProcessor;
+    private readonly IEnumerable<IVectorDb> vectorDbs;
+    private readonly IEnumerable<IIngestionProcessor> ingestionProcessors;
     public IngestCommand(IEnumerable<IVectorDbIngestion> vectorDbIngestions,
         IEnumerable<IVectorDb> vectorDbs,
         IngestionReporter ingestionReporter,
@@ -28,14 +28,16 @@ public class IngestCommand : ICommandAction
         this.ingestionReporter = ingestionReporter;
         this.logger = logger;
         this.config = config;
-        vectorDb = vectorDbs.GetSelectedVectorDb();
-        ingestionProcessor = ingestionProcessors.GetIngestionProcessor(config);
+        this.vectorDbs = vectorDbs;
+        this.ingestionProcessors = ingestionProcessors;
     }
 
     public string Name => "ingest";
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
+        var vectorDb = vectorDbs.GetSelectedVectorDb();
+        var ingestionProcessor = ingestionProcessors.GetIngestionProcessor(config);
         logger.LogInformation("initializing vectordb");
         await vectorDb.InitAsync();
 

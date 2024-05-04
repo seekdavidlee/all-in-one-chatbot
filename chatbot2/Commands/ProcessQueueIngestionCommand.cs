@@ -10,10 +10,9 @@ namespace chatbot2.Commands;
 
 public class ProcessQueueIngestionCommand : QueueCommandBase<SearchModelQueueMessage>
 {
-    private readonly IIngestionProcessor ingestionProcessor;
-    private readonly ILogger<ProcessQueueIngestionCommand> logger;
     private readonly IngestionReporter ingestionReporter;
     private readonly IConfig config;
+    private readonly IEnumerable<IIngestionProcessor> ingestionProcessors;
 
     public ProcessQueueIngestionCommand(
         ILogger<ProcessQueueIngestionCommand> logger,
@@ -21,8 +20,7 @@ public class ProcessQueueIngestionCommand : QueueCommandBase<SearchModelQueueMes
         IngestionReporter ingestionReporter,
         IConfig config) : base("ingest-queue-processing", config.IngestionQueueName, logger, config)
     {
-        ingestionProcessor = ingestionProcessors.GetIngestionProcessor(config);
-        this.logger = logger;
+        this.ingestionProcessors = ingestionProcessors;
         this.ingestionReporter = ingestionReporter;
         this.config = config;
     }
@@ -38,6 +36,7 @@ public class ProcessQueueIngestionCommand : QueueCommandBase<SearchModelQueueMes
 
     protected override async Task ProcessMessageAsync(SearchModelQueueMessage message, CancellationToken cancellationToken)
     {
+        var ingestionProcessor = ingestionProcessors.GetIngestionProcessor(config);
         var blob = new BlockBlobClient(config.AzureStorageConnectionString, config.IngestionQueueStorageName, $"{message.JobId}\\{message.Id}");
         var cnt = await blob.DownloadContentAsync(cancellationToken);
         var models = JsonSerializer.Deserialize<List<SearchModelDto>>(Encoding.UTF8.GetString(cnt.Value.Content.ToArray()));

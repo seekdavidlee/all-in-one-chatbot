@@ -4,15 +4,16 @@ namespace chatbot2.Commands;
 
 public class DeleteSearchCommand : ICommandAction
 {
-    private readonly IVectorDb vectorDb;
+    private readonly IEnumerable<IVectorDb> vectorDbs;
     public DeleteSearchCommand(IEnumerable<IVectorDb> vectorDbs)
     {
-        vectorDb = vectorDbs.GetSelectedVectorDb();
+        this.vectorDbs = vectorDbs;
     }
     public string Name => "delete-search";
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
+        var vectorDb = vectorDbs.GetSelectedVectorDb();
         await vectorDb.DeleteAsync();
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine("database deleted");

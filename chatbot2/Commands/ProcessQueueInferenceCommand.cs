@@ -12,7 +12,7 @@ public class ProcessQueueInferenceCommand : QueueCommandBase<InferenceRequestQue
 {
     private readonly Dictionary<string, QueueClient> queueClients = [];
     private readonly IConfig config;
-    private readonly IInferenceWorkflow inferenceWorkflow;
+    private readonly IEnumerable<IInferenceWorkflow> inferenceWorkflows;
 
     public ProcessQueueInferenceCommand(
         IConfig config,
@@ -21,10 +21,7 @@ public class ProcessQueueInferenceCommand : QueueCommandBase<InferenceRequestQue
         : base("ingest-queue-inference", config.InferenceQueueName, logger, config)
     {
         this.config = config;
-
-        // guard against circular dependency
-        this.inferenceWorkflow = inferenceWorkflows.Where(x => x.GetType().Name != nameof(InferenceWorkflowQueue))
-            .GetInferenceWorkflow(config);
+        this.inferenceWorkflows = inferenceWorkflows;
     }
 
     protected override async Task ProcessMessageAsync(InferenceRequestQueueMessage message, CancellationToken cancellationToken)
@@ -33,6 +30,11 @@ public class ProcessQueueInferenceCommand : QueueCommandBase<InferenceRequestQue
         {
             return;
         }
+
+        // guard against circular dependency
+        var inferenceWorkflow = inferenceWorkflows.Where(x => x.GetType().Name != nameof(InferenceWorkflowQueue))
+            .GetInferenceWorkflow(config);
+
         var output = await inferenceWorkflow.ExecuteAsync(message.Query, new ChatHistory { Chats = message.ChatHistory }, cancellationToken);
 
         if (!queueClients.TryGetValue(message.ResponseQueueName, out var queueClient))
