@@ -45,7 +45,7 @@ public class InferenceWorkflowQueue : IInferenceWorkflow
                 return r.Output;
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(config.IngestionReportEveryXSeconds), cancellationToken);
+            await Task.Delay(TimeSpan.FromMilliseconds(config.IngestionQueuePollingInterval), cancellationToken);
         }
     }
 }
