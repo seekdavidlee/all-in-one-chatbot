@@ -38,8 +38,16 @@ public class InferenceWorkflow : IInferenceWorkflow
         {
             semaphore.Release();
         }
+
+        var output = new InferenceOutput { Steps = [] };
+
         Stopwatch stopwatch = new();
         stopwatch.Start();
+
+        var step0 = new StepOutput { Name = "chatHistory" };
+        step0.Items["Count"] = chatHistory?.Chats?.Count.ToString() ?? "-1";
+        output.Steps.Add(step0);
+
         var intentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
         intentPrompt = intentPrompt.Replace("{{$previous_intent}}", "");
         intentPrompt = intentPrompt.Replace("{{$query}}", userInput);
@@ -47,7 +55,12 @@ public class InferenceWorkflow : IInferenceWorkflow
         var languageModel = languageModels.GetSelectedLanguageModel();
         var chatCompletionResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
 
-        var intentResponse = chatCompletionResponse.Text ?? throw new Exception("did not get response from llm");
+        var step1 = new StepOutput { Name = "DetermineIntent" };
+        step1.Items["CompletionTokens"] = chatCompletionResponse?.CompletionTokens?.ToString() ?? "-1";
+        step1.Items["PromptTokens"] = chatCompletionResponse?.PromptTokens?.ToString() ?? "-1";
+        output.Steps.Add(step1);
+
+        var intentResponse = chatCompletionResponse?.Text ?? throw new Exception("did not get response from llm");
         const string keywordMarker = "Single intents:";
         var findIndex = intentResponse.IndexOf(keywordMarker, StringComparison.OrdinalIgnoreCase);
         if (findIndex < 0)
@@ -65,9 +78,13 @@ public class InferenceWorkflow : IInferenceWorkflow
 
         var vectorDb = vectorDbs.GetSelectedVectorDb();
         List<IndexedDocument> results = [];
-        foreach (var intent in parsedIntents)
+        for (int i = 0; i < parsedIntents.Length; i++)
         {
+            var intent = parsedIntents[i];
+            step1.Items[$"parsedIntents_{i}"] = intent;
             var docResults = (await vectorDb.SearchAsync(intent, cancellationToken)).ToArray();
+
+            step1.Items[$"parsedIntents_{i}_docs_count"] = docResults.Length.ToString();
             results.AddRange(docResults);
         }
 
@@ -84,13 +101,12 @@ public class InferenceWorkflow : IInferenceWorkflow
             throw new Exception("did not get response from llm");
         }
 
-        return new InferenceOutput
-        {
-            Text = replyResponse.Text,
-            DurationInMilliseconds = stopwatch.ElapsedMilliseconds,
-            Documents = resultsArr,
-            CompletionTokens = replyResponse.CompletionTokens,
-            PromptTokens = replyResponse.PromptTokens,
-        };
+        output.Text = replyResponse.Text;
+        output.DurationInMilliseconds = stopwatch.ElapsedMilliseconds;
+        output.Documents = resultsArr;
+        output.CompletionTokens = replyResponse.CompletionTokens;
+        output.PromptTokens = replyResponse.PromptTokens;
+
+        return output;
     }
 }
