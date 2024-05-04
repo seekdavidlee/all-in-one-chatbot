@@ -1,4 +1,5 @@
 ﻿using Azure;
+using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
@@ -12,29 +13,36 @@ namespace chatbot2.VectorDbs;
 
 public class AzureAISearch : IVectorDb
 {
-    private readonly SearchIndexClient searchIndexClient;
-    private readonly IEmbedding embedding;
+    private SearchIndexClient? searchIndexClient;
+    private readonly IEnumerable<IEmbedding> embeddingList;
     private readonly IConfig config;
     private readonly ILogger<AzureAISearch> logger;
-    private readonly Uri azureSearchEndpoint;
-    private readonly AzureKeyCredential keyCredentials;
+    private Uri? azureSearchEndpoint;
+    private AzureKeyCredential? keyCredentials;
     private readonly ConcurrentDictionary<string, SearchClient> searchClients = [];
 
     public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config, ILogger<AzureAISearch> logger)
     {
-        embedding = embeddings.GetSelectedEmbedding(config);
-
-        azureSearchEndpoint = new(config.AzureSearchEndpoint);
-        keyCredentials = new(config.AzureSearchKey);
-        searchIndexClient = new(azureSearchEndpoint, keyCredentials);
-
+        embeddingList = embeddings;
         this.config = config;
         this.logger = logger;
     }
 
+    private SearchIndexClient GetSearchIndexClient()
+    {
+        if (searchIndexClient is null)
+        {
+            azureSearchEndpoint = new(config.AzureSearchEndpoint);
+            keyCredentials = new(config.AzureSearchKey);
+            searchIndexClient = new(azureSearchEndpoint, keyCredentials);
+        }
+
+        return searchIndexClient;
+    }
+
     public Task DeleteAsync()
     {
-        return searchIndexClient.DeleteIndexAsync(config.CollectionName);
+        return GetSearchIndexClient().DeleteIndexAsync(config.CollectionName);
     }
 
     const string VECTOR_PROFILE_NAME = "my-profile-config";
@@ -55,7 +63,7 @@ public class AzureAISearch : IVectorDb
         searchIndex.VectorSearch.Algorithms.Add(new HnswAlgorithmConfiguration(VECTOR_ALG_NAME));
         searchIndex.VectorSearch.Profiles.Add(new VectorSearchProfile(VECTOR_PROFILE_NAME, VECTOR_ALG_NAME));
 
-        await searchIndexClient.CreateOrUpdateIndexAsync(searchIndex);
+        await GetSearchIndexClient().CreateOrUpdateIndexAsync(searchIndex);
     }
 
     private SearchClient GetSearchClient(string collectionName)
@@ -93,6 +101,7 @@ public class AzureAISearch : IVectorDb
 
     public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)
     {
+        var embedding = embeddingList.GetSelectedEmbedding(config);
         var embeddings = (await embedding.GetEmbeddingsAsync([searchText], cancellationToken)).Single();
 
         var query = new VectorizedQuery(embeddings);

@@ -8,14 +8,14 @@ namespace chatbot2.Inferences;
 
 public class InferenceWorkflow : IInferenceWorkflow
 {
-    private readonly ILanguageModel languageModel;
-    private readonly IVectorDb vectorDb;
+    private readonly IEnumerable<ILanguageModel> languageModels;
+    private readonly IEnumerable<IVectorDb> vectorDbs;
     private readonly ILogger<InferenceWorkflow> logger;
 
     public InferenceWorkflow(IEnumerable<ILanguageModel> languageModels, IEnumerable<IVectorDb> vectorDbs, ILogger<InferenceWorkflow> logger)
     {
-        languageModel = languageModels.GetSelectedLanguageModel();
-        vectorDb = vectorDbs.GetSelectedVectorDb();
+        this.languageModels = languageModels;
+        this.vectorDbs = vectorDbs;
         this.logger = logger;
     }
 
@@ -28,7 +28,8 @@ public class InferenceWorkflow : IInferenceWorkflow
         {
             if (!isVectorDbInitialized)
             {
-                await vectorDb.InitAsync();
+                var vectorDb1 = vectorDbs.GetSelectedVectorDb();
+                await vectorDb1.InitAsync();
                 isVectorDbInitialized = true;
                 logger.LogInformation("VectorDb initialized");
             }
@@ -43,6 +44,7 @@ public class InferenceWorkflow : IInferenceWorkflow
         intentPrompt = intentPrompt.Replace("{{$previous_intent}}", "");
         intentPrompt = intentPrompt.Replace("{{$query}}", userInput);
 
+        var languageModel = languageModels.GetSelectedLanguageModel();
         var chatCompletionResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
 
         var intentResponse = chatCompletionResponse.Text ?? throw new Exception("did not get response from llm");
@@ -61,6 +63,7 @@ public class InferenceWorkflow : IInferenceWorkflow
             parsedIntents = [userInput];
         }
 
+        var vectorDb = vectorDbs.GetSelectedVectorDb();
         List<IndexedDocument> results = [];
         foreach (var intent in parsedIntents)
         {

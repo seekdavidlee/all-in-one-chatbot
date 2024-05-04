@@ -8,7 +8,7 @@ namespace chatbot2.Evals;
 public class EvaluationRunner
 {
     private readonly ReportRepository reportRepository;
-    private readonly IInferenceWorkflow inferenceWorkflow;
+    private IEnumerable<IInferenceWorkflow> inferenceWorkflows;
     private readonly EvaluationMetricWorkflow evaluationMetricWorkflow;
     private readonly IConfig config;
     private readonly ILogger<EvaluationRunner> logger;
@@ -21,7 +21,7 @@ public class EvaluationRunner
         ILogger<EvaluationRunner> logger)
     {
         this.reportRepository = reportRepository;
-        this.inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
+        this.inferenceWorkflows = inferenceWorkflows;
         this.evaluationMetricWorkflow = evaluationMetricWorkflow;
         this.config = config;
         this.logger = logger;
@@ -29,6 +29,7 @@ public class EvaluationRunner
 
     public async Task RunAsync(int runCounts, string path, IEnumerable<GroundTruth> groundTruths, IEnumerable<EvaluationMetricConfig> metrics, CancellationToken cancellationToken)
     {
+        var inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
         logger.LogInformation("starting evaluation runs: {path}", path);
 
         var blocks = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken));
@@ -77,6 +78,7 @@ public class EvaluationRunner
             return;
         }
 
+        var inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
         try
         {
             logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, index);

@@ -7,17 +7,20 @@ namespace chatbot2.Commands;
 
 public class ChatbotCommand : ICommandAction
 {
-    private readonly IInferenceWorkflow inferenceWorkflow;
+    private readonly IEnumerable<IInferenceWorkflow> inferenceWorkflows;
+    private readonly IConfig config;
 
     public ChatbotCommand(IConfig config, IEnumerable<IInferenceWorkflow> inferenceWorkflows)
     {
-        this.inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
+        this.inferenceWorkflows = inferenceWorkflows;
+        this.config = config;
     }
 
     public string Name => "chatbot";
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
+        var inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
         Console.WriteLine("Chatbot is ready. Type in a question or type 'exit' to quit.");
         var chatHistory = new ChatHistory { Chats = [] };
         while (true)
@@ -32,7 +35,7 @@ public class ChatbotCommand : ICommandAction
 
             var chatEntry = new ChatEntry { User = userInput };
 
-            var result = await this.inferenceWorkflow.ExecuteAsync(userInput, chatHistory, cancellationToken);
+            var result = await inferenceWorkflow.ExecuteAsync(userInput, chatHistory, cancellationToken);
 
             chatEntry.Bot = result.Text;
             chatEntry.UserTokens = result.PromptTokens;
