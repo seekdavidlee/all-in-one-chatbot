@@ -20,8 +20,8 @@ public class Config : IConfig
         this.LogLevel = this.config.Get<string>("LogLevel").AsString(() => "Information");
         this.IngestionTypes = this.config.Get("IngestionTypes", (list) => list is null ? [] : list.Split(','));
         this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
-        this.Concurrency = this.config.Get<int>("Concurrency", int.Parse);
-        this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", int.Parse);
+        this.Concurrency = this.config.Get<int>("Concurrency", v => v is null ? 3 : int.Parse(v));
+        this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", v => v is null ? 5000 : int.Parse(v));
         this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 15 : int.Parse(v));
         this.IngestionQueueName = this.config.Get<string>("IngestionQueueName");
         this.EvaluationQueueName = this.config.Get<string>("EvaluationQueueName");
@@ -81,9 +81,9 @@ public class Config : IConfig
         this.config.Optional("IngestionTypes", this.IngestionTypes, hideValue: false);
         this.config.Require("LogLevel", this.LogLevel, hideValue: false);
         this.config.Require("TextEmbeddingVectorDimension", this.TextEmbeddingVectorDimension, hideValue: false);
-        this.config.Require("Concurrency", this.Concurrency, hideValue: false);
-        this.config.Require("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
-        this.config.Require("IngestionReportEveryXSeconds", this.IngestionReportEveryXSeconds, hideValue: false);
+        this.config.Optional("Concurrency", this.Concurrency, hideValue: false);
+        this.config.Optional("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
+        this.config.Optional("IngestionReportEveryXSeconds", this.IngestionReportEveryXSeconds, hideValue: false);
         this.config.Optional("IngestionQueueName", this.IngestionQueueName, hideValue: false);
         this.config.Optional("EvaluationQueueName", this.EvaluationQueueName, hideValue: false);
         this.config.Optional("IngestionProcessorType", this.IngestionProcessorType, hideValue: false);
