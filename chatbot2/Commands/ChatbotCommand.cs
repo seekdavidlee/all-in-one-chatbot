@@ -2,6 +2,7 @@
 using chatbot2.Inferences;
 using chatbot2.Llms;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 
 namespace chatbot2.Commands;
 
@@ -35,15 +36,18 @@ public class ChatbotCommand : ICommandAction
 
             var chatEntry = new ChatEntry { User = userInput };
 
+            Stopwatch sw = new();
+            sw.Start();
             var result = await inferenceWorkflow.ExecuteAsync(userInput, chatHistory, cancellationToken);
-
+            sw.Stop();
             chatEntry.Bot = result.Text;
             chatEntry.UserTokens = result.PromptTokens;
             chatEntry.BotTokens = result.CompletionTokens;
             chatHistory.Chats.Add(chatEntry);
 
             Console.WriteLine($"Bot: {result.Text}");
-            Console.WriteLine("documents found: {0}, total time taken: {1} ms", result.Documents?.Length, result.DurationInMilliseconds);
+            Console.WriteLine("documents found: {0}, inferenceWorkflow total time taken: {1} ms", result.Documents?.Length, result.DurationInMilliseconds);
+            Console.WriteLine("total time taken: {0} ms", sw.ElapsedMilliseconds);
         }
     }
 }
