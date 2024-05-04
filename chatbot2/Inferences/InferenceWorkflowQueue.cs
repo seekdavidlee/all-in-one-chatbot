@@ -35,7 +35,7 @@ public class InferenceWorkflowQueue : IInferenceWorkflow
             var r = JsonSerializer.Deserialize<InferenceResponseQueueMessage>(message.Value.Body);
             if (r is not null && r.CorrelationId == id)
             {
-                await requestQueueClient.DeleteMessageAsync(
+                await responseQueueClient.DeleteMessageAsync(
                     message.Value.MessageId, message.Value.PopReceipt, cancellationToken: cancellationToken);
 
                 if (r.Output is null)

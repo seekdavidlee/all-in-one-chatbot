@@ -15,7 +15,7 @@ public class EvaluationRunner
 
     public EvaluationRunner(
         ReportRepository reportRepository,
-        IEnumerable<InferenceWorkflow> inferenceWorkflows,
+        IEnumerable<IInferenceWorkflow> inferenceWorkflows,
         EvaluationMetricWorkflow evaluationMetricWorkflow,
         IConfig config,
         ILogger<EvaluationRunner> logger)
