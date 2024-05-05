@@ -32,17 +32,20 @@ public class InferenceWorkflowQueue : IInferenceWorkflow
         while (true)
         {
             var message = await responseQueueClient.ReceiveMessageAsync(cancellationToken: cancellationToken);
-            var r = JsonSerializer.Deserialize<InferenceResponseQueueMessage>(message.Value.Body);
-            if (r is not null && r.CorrelationId == id)
+            if (message is not null)
             {
-                await responseQueueClient.DeleteMessageAsync(
-                    message.Value.MessageId, message.Value.PopReceipt, cancellationToken: cancellationToken);
-
-                if (r.Output is null)
+                var response = JsonSerializer.Deserialize<InferenceResponseQueueMessage>(message.Value.Body);
+                if (response is not null && response.CorrelationId == id)
                 {
-                    throw new Exception("invalid response from inference workflow");
+                    await responseQueueClient.DeleteMessageAsync(
+                        message.Value.MessageId, message.Value.PopReceipt, cancellationToken: cancellationToken);
+
+                    if (response.Output is null)
+                    {
+                        throw new Exception("invalid response from inference workflow");
+                    }
+                    return response.Output;
                 }
-                return r.Output;
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(config.IngestionQueuePollingInterval), cancellationToken);
