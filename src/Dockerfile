@@ -10,7 +10,7 @@ WORKDIR /src
 COPY ["src/AIOChatbot.csproj", "AIOChatbot/"]
 RUN dotnet restore "./AIOChatbot/AIOChatbot.csproj"
 COPY . .
-WORKDIR "/src/AIOChatbot"
+WORKDIR "/src/src"
 RUN dotnet build "./AIOChatbot.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
