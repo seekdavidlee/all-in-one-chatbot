@@ -41,7 +41,7 @@ foreach (var ingestionType in config.IngestionTypes)
     {
         continue;
     }
-    services.AddSingleton(typeof(IVectorDbIngestion), Type.GetType(ingestionType) ?? throw new Exception($"invalid IVectorDbIngestion type {ingestionType}"));
+    services.AddSingleton(typeof(IIngestionDataSource), Type.GetType(ingestionType) ?? throw new Exception($"invalid IVectorDbIngestion type {ingestionType}"));
 }
 services.AddSingleton<ICommandAction, ChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();

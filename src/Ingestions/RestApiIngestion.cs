@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace chatbot2.Ingestions;
 
-public class RestApiIngestion : IVectorDbIngestion
+public class RestApiIngestion : IIngestionDataSource
 {
     private readonly RestClientConfig config;
     private readonly IRestClientAuthHeaderProvider restClientAuthHeaderProvider;

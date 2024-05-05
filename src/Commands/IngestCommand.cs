@@ -11,13 +11,13 @@ namespace chatbot2.Commands;
 
 public class IngestCommand : ICommandAction
 {
-    private readonly IEnumerable<IVectorDbIngestion> vectorDbIngestions;
+    private readonly IEnumerable<IIngestionDataSource> vectorDbIngestions;
     private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<IngestCommand> logger;
     private readonly IConfig config;
     private readonly IEnumerable<IVectorDb> vectorDbs;
     private readonly IEnumerable<IIngestionProcessor> ingestionProcessors;
-    public IngestCommand(IEnumerable<IVectorDbIngestion> vectorDbIngestions,
+    public IngestCommand(IEnumerable<IIngestionDataSource> vectorDbIngestions,
         IEnumerable<IVectorDb> vectorDbs,
         IngestionReporter ingestionReporter,
         ILogger<IngestCommand> logger,

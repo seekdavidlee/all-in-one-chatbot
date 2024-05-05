@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace chatbot2.Ingestions;
 
-public class LocalDirectoryIngestion : IVectorDbIngestion
+public class LocalDirectoryIngestion : IIngestionDataSource
 {
     private readonly IConfig config;
     private readonly ILogger<LocalDirectoryIngestion> logger;
