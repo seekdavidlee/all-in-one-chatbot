@@ -21,20 +21,22 @@ public class ReportRepository
         {
             if (client is null)
             {
-                var svc = new BlobServiceClient(config.AzureStorageConnectionString);                
+                var svc = new BlobServiceClient(config.AzureStorageConnectionString);
                 client = svc.GetBlobContainerClient(config.EvaluationStorageName);
             }
             return client;
         }
     }
 
+    private static readonly JsonSerializerOptions encoder = new JsonSerializerOptions
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
     public async Task SaveAsync<T>(string name, T item) where T : class
     {
         using var stream = new MemoryStream();
-        await JsonSerializer.SerializeAsync(stream, item, new JsonSerializerOptions
-        {
-            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-        });
+        await JsonSerializer.SerializeAsync(stream, item, encoder);
         stream.Position = 0;
         await UploadAsync(name, stream);
     }

@@ -130,13 +130,20 @@ function Add-Containers {
     for ($i = $StartingNameIndex; $i -lt $Count; $i++) {
         $containerName = "$($config.CONTAINER_NAME_PREFIX)-" + $i
         $zone = $config.ZONE
+        $vnet = $config.VNET
+        $subnet = $config.SUBNET
         $jobs += Start-Job -ScriptBlock {
-            param($containerName, $zone)
+            param($containerName, $zone, $vnet, $subnet)
 
             $p = @()
             
             if ($zone){
                 $p += "--zone=$zone"
+            }
+
+            if ($vnet -and $subnet){
+                $p += "--vnet=$vnet"
+                $p += "--subnet=$subnet"
             }
 
             $response = az container create `
@@ -158,7 +165,7 @@ function Add-Containers {
                 throw "Error: $response"
             }
 
-        } -ArgumentList @($containerName, $zone)
+        } -ArgumentList @($containerName, $zone, $vnet, $subnet)
 
         Write-Host "Running Job - ContainerName: $($containerName)..."
     }

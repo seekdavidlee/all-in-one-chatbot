@@ -8,20 +8,20 @@ namespace chatbot2.Evals;
 public class EvaluationRunner
 {
     private readonly ReportRepository reportRepository;
-    private readonly InferenceWorkflow inferenceWorkflow;
+    private IEnumerable<IInferenceWorkflow> inferenceWorkflows;
     private readonly EvaluationMetricWorkflow evaluationMetricWorkflow;
     private readonly IConfig config;
     private readonly ILogger<EvaluationRunner> logger;
 
     public EvaluationRunner(
         ReportRepository reportRepository,
-        InferenceWorkflow inferenceWorkflow,
+        IEnumerable<IInferenceWorkflow> inferenceWorkflows,
         EvaluationMetricWorkflow evaluationMetricWorkflow,
         IConfig config,
         ILogger<EvaluationRunner> logger)
     {
         this.reportRepository = reportRepository;
-        this.inferenceWorkflow = inferenceWorkflow;
+        this.inferenceWorkflows = inferenceWorkflows;
         this.evaluationMetricWorkflow = evaluationMetricWorkflow;
         this.config = config;
         this.logger = logger;
@@ -29,6 +29,7 @@ public class EvaluationRunner
 
     public async Task RunAsync(int runCounts, string path, IEnumerable<GroundTruth> groundTruths, IEnumerable<EvaluationMetricConfig> metrics, CancellationToken cancellationToken)
     {
+        var inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
         logger.LogInformation("starting evaluation runs: {path}", path);
 
         var blocks = new ActionBlock<Func<Task>>((action) => action(), config.GetDataflowOptions(cancellationToken));
@@ -77,10 +78,11 @@ public class EvaluationRunner
             return;
         }
 
+        var inferenceWorkflow = inferenceWorkflows.GetInferenceWorkflow(config);
         try
         {
             logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, index);
-            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, cancellationToken);
+            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, null, cancellationToken);
             if (answer is null)
             {
                 return;

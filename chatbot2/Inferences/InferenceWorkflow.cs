@@ -6,29 +6,30 @@ using System.Text.Json;
 
 namespace chatbot2.Inferences;
 
-public class InferenceWorkflow
+public class InferenceWorkflow : IInferenceWorkflow
 {
-    private readonly ILanguageModel languageModel;
-    private readonly IVectorDb vectorDb;
+    private readonly IEnumerable<ILanguageModel> languageModels;
+    private readonly IEnumerable<IVectorDb> vectorDbs;
     private readonly ILogger<InferenceWorkflow> logger;
 
     public InferenceWorkflow(IEnumerable<ILanguageModel> languageModels, IEnumerable<IVectorDb> vectorDbs, ILogger<InferenceWorkflow> logger)
     {
-        languageModel = languageModels.GetSelectedLanguageModel();
-        vectorDb = vectorDbs.GetSelectedVectorDb();
+        this.languageModels = languageModels;
+        this.vectorDbs = vectorDbs;
         this.logger = logger;
     }
 
     private readonly SemaphoreSlim semaphore = new(1, 1);
     private bool isVectorDbInitialized;
-    public async Task<InferenceOutput> ExecuteAsync(string userInput, CancellationToken cancellationToken, ChatHistory? chatHistory = null)
+    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, CancellationToken cancellationToken)
     {
         await semaphore.WaitAsync();
         try
         {
             if (!isVectorDbInitialized)
             {
-                await vectorDb.InitAsync();
+                var vectorDb1 = vectorDbs.GetSelectedVectorDb();
+                await vectorDb1.InitAsync();
                 isVectorDbInitialized = true;
                 logger.LogInformation("VectorDb initialized");
             }
@@ -37,15 +38,29 @@ public class InferenceWorkflow
         {
             semaphore.Release();
         }
+
+        var output = new InferenceOutput { Steps = [] };
+
         Stopwatch stopwatch = new();
         stopwatch.Start();
+
+        var step0 = new StepOutput { Name = "chatHistory" };
+        step0.Items["Count"] = chatHistory?.Chats?.Count.ToString() ?? "-1";
+        output.Steps.Add(step0);
+
         var intentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
         intentPrompt = intentPrompt.Replace("{{$previous_intent}}", "");
         intentPrompt = intentPrompt.Replace("{{$query}}", userInput);
 
+        var languageModel = languageModels.GetSelectedLanguageModel();
         var chatCompletionResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
 
-        var intentResponse = chatCompletionResponse.Text ?? throw new Exception("did not get response from llm");
+        var step1 = new StepOutput { Name = "DetermineIntent" };
+        step1.Items["CompletionTokens"] = chatCompletionResponse?.CompletionTokens?.ToString() ?? "-1";
+        step1.Items["PromptTokens"] = chatCompletionResponse?.PromptTokens?.ToString() ?? "-1";
+        output.Steps.Add(step1);
+
+        var intentResponse = chatCompletionResponse?.Text ?? throw new Exception("did not get response from llm");
         const string keywordMarker = "Single intents:";
         var findIndex = intentResponse.IndexOf(keywordMarker, StringComparison.OrdinalIgnoreCase);
         if (findIndex < 0)
@@ -61,10 +76,15 @@ public class InferenceWorkflow
             parsedIntents = [userInput];
         }
 
+        var vectorDb = vectorDbs.GetSelectedVectorDb();
         List<IndexedDocument> results = [];
-        foreach (var intent in parsedIntents)
+        for (int i = 0; i < parsedIntents.Length; i++)
         {
+            var intent = parsedIntents[i];
+            step1.Items[$"parsedIntents_{i}"] = intent;
             var docResults = (await vectorDb.SearchAsync(intent, cancellationToken)).ToArray();
+
+            step1.Items[$"parsedIntents_{i}_docs_count"] = docResults.Length.ToString();
             results.AddRange(docResults);
         }
 
@@ -81,13 +101,12 @@ public class InferenceWorkflow
             throw new Exception("did not get response from llm");
         }
 
-        return new InferenceOutput
-        {
-            Text = replyResponse.Text,
-            DurationInMilliseconds = stopwatch.ElapsedMilliseconds,
-            Documents = resultsArr,
-            CompletionTokens = replyResponse.CompletionTokens,
-            PromptTokens = replyResponse.PromptTokens,
-        };
+        output.Text = replyResponse.Text;
+        output.DurationInMilliseconds = stopwatch.ElapsedMilliseconds;
+        output.Documents = resultsArr;
+        output.CompletionTokens = replyResponse.CompletionTokens;
+        output.PromptTokens = replyResponse.PromptTokens;
+
+        return output;
     }
 }

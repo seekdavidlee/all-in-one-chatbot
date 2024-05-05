@@ -1,4 +1,5 @@
-﻿using chatbot2.Configuration;
+﻿using Azure.AI.OpenAI;
+using chatbot2.Configuration;
 using ChromaDBSharp.Client;
 
 namespace chatbot2.VectorDbs;
@@ -8,13 +9,13 @@ public class ChromaDbClient : IVectorDb, IDisposable
     private ChromaDBClient? client;
     private HttpClient? httpClient;
     private ICollectionClient? collectionClient;
-    private readonly IEmbedding embedding;
+    private readonly IEnumerable< IEmbedding> embeddingList;
     private readonly IConfig config;
     private float? minimumScore = 0.8f;
 
     public ChromaDbClient(IEnumerable<IEmbedding> embeddings, IConfig config)
     {
-        embedding = embeddings.GetSelectedEmbedding(config);
+        embeddingList = embeddings;
         this.config = config;
     }
 
@@ -99,6 +100,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
         {
             throw new Exception("CollectionClient is not initialized!");
         }
+        var embedding = embeddingList.GetSelectedEmbedding(config);
         var embeddings = await embedding.GetEmbeddingsAsync([searchText], cancellationToken);
         var results = await collectionClient.QueryAsync(queryEmbeddings: embeddings, numberOfResults: 5);
         if (results is null || results.Ids is null || results.Distances is null)

@@ -66,7 +66,7 @@ public class RemoteEvaluationCommand : ICommandAction
 
         List<EvaluationMetricConfig> metrics = [];
         var projectContainer = new BlobContainerClient(config.AzureStorageConnectionString, config.ProjectStorageName);
-        await foreach (var blobMetric in projectContainer.GetBlobsAsync(prefix: $"{evalConfig.ProjectId}/{evalConfig.ExperimentId}"))
+        await foreach (var blobMetric in projectContainer.GetBlobsAsync(prefix: $"{evalConfig.ProjectId}/{evalConfig.ExperimentId}", cancellationToken: cancellationToken))
         {
             if (cancellationToken.IsCancellationRequested)
             {
@@ -76,7 +76,7 @@ public class RemoteEvaluationCommand : ICommandAction
             if (blobMetric.Name.EndsWith(".json"))
             {
                 var blob = new BlobClient(config.AzureStorageConnectionString, config.ProjectStorageName, blobMetric.Name);
-                var response = await blob.DownloadContentAsync();
+                var response = await blob.DownloadContentAsync(cancellationToken);
                 var metric = JsonSerializer.Deserialize<EvaluationMetricConfig>(response.Value.Content) ?? throw new Exception("unable to deserialize metric blob");
 
                 int lastIndex = blobMetric.Name.LastIndexOf("/");

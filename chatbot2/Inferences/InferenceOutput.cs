@@ -9,4 +9,18 @@ public class InferenceOutput
     public IndexedDocument[]? Documents { get; set; }
     public int? CompletionTokens { get; set; }
     public int? PromptTokens { get; set; }
+
+    public List<StepOutput>? Steps { get; set; }
+}
+
+public class StepOutput
+{
+    public StepOutput()
+    {
+        Items = [];
+    }
+
+    public string? Name { get; set; }
+
+    public Dictionary<string, string> Items { get; set; }
 }

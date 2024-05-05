@@ -6,12 +6,12 @@ using System.Text.Json;
 
 namespace chatbot2.Ingestions;
 
-public class QueueService : IIngestionProcessor
+public class IngestionQueueService : IIngestionProcessor
 {
     private readonly QueueClient queueClient;
     private readonly IConfig config;
     private static readonly Guid jobId = Guid.NewGuid();
-    public QueueService(IConfig config)
+    public IngestionQueueService(IConfig config)
     {
         queueClient = new(config.AzureQueueConnectionString, config.IngestionQueueName);
         this.config = config;

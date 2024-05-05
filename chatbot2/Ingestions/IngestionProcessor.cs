@@ -8,8 +8,9 @@ public class IngestionProcessor : IIngestionProcessor
 {
     private readonly IngestionReporter ingestionReporter;
     private readonly ILogger<IngestCommand> logger;
-    private readonly IVectorDb vectorDb;
-    private readonly IEmbedding embedding;
+    private readonly IConfig config;
+    private readonly IEnumerable<IVectorDb> vectorDbs;
+    private readonly IEnumerable<IEmbedding> embeddings;
 
     public IngestionProcessor(IEnumerable<IVectorDb> vectorDbs,
         IEnumerable<IEmbedding> embeddings,
@@ -19,12 +20,15 @@ public class IngestionProcessor : IIngestionProcessor
     {
         this.ingestionReporter = ingestionReporter;
         this.logger = logger;
-        vectorDb = vectorDbs.GetSelectedVectorDb();
-        embedding = embeddings.GetSelectedEmbedding(config);
+        this.config = config;
+        this.embeddings = embeddings;
+        this.vectorDbs = vectorDbs;
     }
 
     public async Task ProcessAsync(List<SearchModelDto> searchModels, string collectionName, CancellationToken cancellationToken)
     {
+        var vectorDb = vectorDbs.GetSelectedVectorDb();
+        var embedding = embeddings.GetSelectedEmbedding(config);
         try
         {
             this.ingestionReporter.IncrementSearchModelsProcessing(searchModels.Count);
