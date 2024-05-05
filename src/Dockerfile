@@ -8,7 +8,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["src/AIOChatbot.csproj", "AIOChatbot/"]
-RUN dotnet restore "./src/AIOChatbot.csproj"
+RUN dotnet restore "./AIOChatbot/AIOChatbot.csproj"
 COPY . .
 WORKDIR "/src/AIOChatbot"
 RUN dotnet build "./AIOChatbot.csproj" -c $BUILD_CONFIGURATION -o /app/build
