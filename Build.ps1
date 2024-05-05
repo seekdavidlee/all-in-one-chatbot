@@ -1,7 +1,7 @@
-param($version)
+param([Parameter(Mandatory = $true)][string] $version)
 $ErrorActionPreference = "Stop"
-$appName = "chatbot2"
-$path = "chatbot2"
+$appName = "aiochatbot"
+$path = "src"
 
 $acr = (az resource list --tag asm-resource-id=shared-container-registry | ConvertFrom-Json)
 if (!$acr) {
