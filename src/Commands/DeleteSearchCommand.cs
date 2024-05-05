@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class DeleteSearchCommand : ICommandAction
 {

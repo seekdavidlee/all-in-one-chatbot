@@ -1,6 +1,6 @@
 ﻿using SharpToken;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class TextChunk
 {

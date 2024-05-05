@@ -1,6 +1,6 @@
 ﻿using NetBricks;
 
-namespace chatbot2.Configuration;
+namespace AIOChatbot.Configuration;
 public class Config : IConfig
 {
     private readonly NetBricks.IConfig config;

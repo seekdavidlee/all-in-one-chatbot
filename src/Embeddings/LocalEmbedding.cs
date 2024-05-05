@@ -1,7 +1,7 @@
 ﻿using LLama.Common;
 using LLama;
 
-namespace chatbot2.Embeddings;
+namespace AIOChatbot.Embeddings;
 
 public class LocalEmbedding : IEmbedding
 {

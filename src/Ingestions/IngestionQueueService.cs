@@ -1,10 +1,10 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using chatbot2.Configuration;
+using AIOChatbot.Configuration;
 using System.Text;
 using System.Text.Json;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class IngestionQueueService : IIngestionProcessor
 {

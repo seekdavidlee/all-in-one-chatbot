@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace chatbot2.Evals;
+namespace AIOChatbot.Evals;
 
 public class ExcelReaderConfig
 {

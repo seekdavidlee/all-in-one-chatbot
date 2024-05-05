@@ -1,5 +1,5 @@
-﻿using chatbot2.Configuration;
-using chatbot2.Ingestions;
+﻿using AIOChatbot.Configuration;
+using AIOChatbot.Ingestions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SharpToken;
@@ -7,7 +7,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Tasks.Dataflow;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class IngestCommand : ICommandAction
 {

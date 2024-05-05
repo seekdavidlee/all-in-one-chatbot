@@ -1,6 +1,6 @@
 ﻿using System.Net.Http.Headers;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public interface IRestClientAuthHeaderProvider
 {

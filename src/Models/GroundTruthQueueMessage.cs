@@ -1,6 +1,6 @@
-﻿using chatbot2.Evals;
+﻿using AIOChatbot.Evals;
 
-namespace chatbot2.Models;
+namespace AIOChatbot.Models;
 
 public class GroundTruthQueueMessage
 {

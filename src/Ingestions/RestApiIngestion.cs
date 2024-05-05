@@ -1,10 +1,10 @@
 ﻿using System.Text.Json;
 using Azure.Storage.Blobs;
-using chatbot2.Configuration;
-using chatbot2.Ingestions;
+using AIOChatbot.Configuration;
+using AIOChatbot.Ingestions;
 using Microsoft.Extensions.Logging;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class RestApiIngestion : IIngestionDataSource
 {

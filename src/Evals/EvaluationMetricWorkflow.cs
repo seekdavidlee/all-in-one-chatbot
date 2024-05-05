@@ -1,9 +1,9 @@
-﻿using chatbot2.Inferences;
-using chatbot2.Llms;
+﻿using AIOChatbot.Inferences;
+using AIOChatbot.Llms;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
-namespace chatbot2.Evals;
+namespace AIOChatbot.Evals;
 
 public class EvaluationMetricWorkflow
 {

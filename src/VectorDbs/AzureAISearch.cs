@@ -4,12 +4,12 @@ using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
-using chatbot2.Configuration;
+using AIOChatbot.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
 
-namespace chatbot2.VectorDbs;
+namespace AIOChatbot.VectorDbs;
 
 public class AzureAISearch : IVectorDb
 {

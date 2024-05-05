@@ -1,13 +1,13 @@
-﻿using chatbot2.Configuration;
-using chatbot2.Inferences;
-using chatbot2.Ingestions;
-using chatbot2.VectorDbs;
+﻿using AIOChatbot.Configuration;
+using AIOChatbot.Inferences;
+using AIOChatbot.Ingestions;
+using AIOChatbot.VectorDbs;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks.Dataflow;
 
-namespace chatbot2;
+namespace AIOChatbot;
 
 public static class Util
 {
@@ -15,7 +15,7 @@ public static class Util
 
     public static Task<string> GetResourceAsync(string resourceName)
     {
-        using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"chatbot2.Prompts.{resourceName}");
+        using var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"AIOChatbot.Prompts.{resourceName}");
         using var streamReader = new StreamReader(resourceStream ?? throw new Exception($"Invalid {resourceName} stream"));
         return streamReader.ReadToEndAsync();
     }

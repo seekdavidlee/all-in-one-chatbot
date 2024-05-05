@@ -1,9 +1,9 @@
-﻿using chatbot2.Evals;
+﻿using AIOChatbot.Evals;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class LocalEvaluationCommand : ICommandAction
 {

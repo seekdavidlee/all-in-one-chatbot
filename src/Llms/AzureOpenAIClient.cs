@@ -1,7 +1,7 @@
 ﻿using Azure.AI.OpenAI;
-using chatbot2.Configuration;
+using AIOChatbot.Configuration;
 
-namespace chatbot2.Llms;
+namespace AIOChatbot.Llms;
 
 public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
 {

@@ -1,8 +1,8 @@
-﻿using chatbot2.Configuration;
+﻿using AIOChatbot.Configuration;
 using System.Net.Http.Headers;
 using System.Text.Json;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class CustomAuthProvider : IRestClientAuthHeaderProvider
 {

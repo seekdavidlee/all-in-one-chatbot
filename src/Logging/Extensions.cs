@@ -5,11 +5,11 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using OpenTelemetry;
-using chatbot2.Configuration;
+using AIOChatbot.Configuration;
 using System.Reflection;
 using Microsoft.Extensions.Logging.Console;
 
-namespace chatbot2.Logging;
+namespace AIOChatbot.Logging;
 
 public static class Extensions
 {

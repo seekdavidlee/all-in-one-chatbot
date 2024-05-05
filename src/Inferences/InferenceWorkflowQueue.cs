@@ -1,10 +1,10 @@
 ﻿using Azure.Storage.Queues;
-using chatbot2.Configuration;
-using chatbot2.Llms;
-using chatbot2.Models;
+using AIOChatbot.Configuration;
+using AIOChatbot.Llms;
+using AIOChatbot.Models;
 using System.Text.Json;
 
-namespace chatbot2.Inferences;
+namespace AIOChatbot.Inferences;
 
 public class InferenceWorkflowQueue : IInferenceWorkflow
 {

@@ -1,4 +1,4 @@
-﻿namespace chatbot2.Evals;
+﻿namespace AIOChatbot.Evals;
 
 public interface IGroundTruthReader
 {

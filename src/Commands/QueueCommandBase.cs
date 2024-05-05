@@ -1,11 +1,11 @@
 ﻿using Azure.Storage.Queues;
-using chatbot2.Configuration;
+using AIOChatbot.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public abstract class QueueCommandBase<T> : ICommandAction
 {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class IngestionReporter
 {

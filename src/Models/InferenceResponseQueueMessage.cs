@@ -1,6 +1,6 @@
-﻿using chatbot2.Inferences;
+﻿using AIOChatbot.Inferences;
 
-namespace chatbot2.Models;
+namespace AIOChatbot.Models;
 
 public class InferenceResponseQueueMessage
 {

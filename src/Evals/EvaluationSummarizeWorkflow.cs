@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace chatbot2.Evals;
+namespace AIOChatbot.Evals;
 
 public class EvaluationSummarizeWorkflow
 {

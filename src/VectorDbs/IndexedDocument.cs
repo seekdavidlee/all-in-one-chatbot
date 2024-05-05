@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace chatbot2.VectorDbs;
+namespace AIOChatbot.VectorDbs;
 
 public class IndexedDocument
 {

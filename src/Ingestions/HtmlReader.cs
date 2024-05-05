@@ -1,10 +1,10 @@
 ﻿using Azure.Storage.Blobs;
-using chatbot2.Configuration;
-using chatbot2.Logging;
+using AIOChatbot.Configuration;
+using AIOChatbot.Logging;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class HtmlReader
 {

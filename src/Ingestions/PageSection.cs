@@ -1,7 +1,7 @@
 ﻿using HtmlAgilityPack;
 using System.Text;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 public class PageSection
 {
     private readonly HtmlNode node;

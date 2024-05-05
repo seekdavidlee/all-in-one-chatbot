@@ -1,8 +1,8 @@
-﻿using chatbot2.Commands;
-using chatbot2.Configuration;
+﻿using AIOChatbot.Commands;
+using AIOChatbot.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class IngestionProcessor : IIngestionProcessor
 {

@@ -1,12 +1,12 @@
 ﻿using Azure.Storage.Queues;
-using chatbot2.Configuration;
-using chatbot2.Inferences;
-using chatbot2.Llms;
-using chatbot2.Models;
+using AIOChatbot.Configuration;
+using AIOChatbot.Inferences;
+using AIOChatbot.Llms;
+using AIOChatbot.Models;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class ProcessQueueInferenceCommand : QueueCommandBase<InferenceRequestQueueMessage>
 {

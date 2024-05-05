@@ -1,4 +1,4 @@
-﻿namespace chatbot2;
+﻿namespace AIOChatbot;
 
 public class SearchModelQueueMessage
 {

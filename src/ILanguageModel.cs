@@ -1,6 +1,6 @@
-﻿using chatbot2.Llms;
+﻿using AIOChatbot.Llms;
 
-namespace chatbot2;
+namespace AIOChatbot;
 
 public interface ILanguageModel
 {

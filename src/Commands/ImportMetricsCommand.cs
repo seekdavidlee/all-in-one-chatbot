@@ -1,12 +1,12 @@
 ﻿using Azure.Storage.Blobs;
-using chatbot2.Configuration;
-using chatbot2.Evals;
+using AIOChatbot.Configuration;
+using AIOChatbot.Evals;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class ImportMetricsCommand : ICommandAction
 {

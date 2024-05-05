@@ -1,12 +1,12 @@
 ﻿using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
-using chatbot2.Configuration;
-using chatbot2.Ingestions;
+using AIOChatbot.Configuration;
+using AIOChatbot.Ingestions;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class ProcessQueueIngestionCommand : QueueCommandBase<SearchModelQueueMessage>
 {

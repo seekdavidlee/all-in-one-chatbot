@@ -1,6 +1,6 @@
 ﻿using ClosedXML.Excel;
 
-namespace chatbot2.Evals;
+namespace AIOChatbot.Evals;
 
 public class ExcelGrouthTruthReader : IGroundTruthReader
 {

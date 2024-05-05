@@ -1,13 +1,13 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using chatbot2.Configuration;
-using chatbot2.Evals;
-using chatbot2.Models;
+using AIOChatbot.Configuration;
+using AIOChatbot.Evals;
+using AIOChatbot.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class RemoteEvaluationCommand : ICommandAction
 {

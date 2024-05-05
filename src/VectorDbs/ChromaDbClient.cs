@@ -1,8 +1,8 @@
 ﻿using Azure.AI.OpenAI;
-using chatbot2.Configuration;
+using AIOChatbot.Configuration;
 using ChromaDBSharp.Client;
 
-namespace chatbot2.VectorDbs;
+namespace AIOChatbot.VectorDbs;
 
 public class ChromaDbClient : IVectorDb, IDisposable
 {

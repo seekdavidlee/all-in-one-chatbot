@@ -1,4 +1,4 @@
-﻿namespace chatbot2.Llms;
+﻿namespace AIOChatbot.Llms;
 
 public class ChatEntry
 {

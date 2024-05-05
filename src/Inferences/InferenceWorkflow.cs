@@ -1,10 +1,10 @@
-﻿using chatbot2.Llms;
-using chatbot2.VectorDbs;
+﻿using AIOChatbot.Llms;
+using AIOChatbot.VectorDbs;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Text.Json;
 
-namespace chatbot2.Inferences;
+namespace AIOChatbot.Inferences;
 
 public class InferenceWorkflow : IInferenceWorkflow
 {

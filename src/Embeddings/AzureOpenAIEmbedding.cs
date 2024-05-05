@@ -1,12 +1,12 @@
 ﻿
 using Azure;
 using Azure.AI.OpenAI;
-using chatbot2.Configuration;
-using chatbot2.Ingestions;
-using chatbot2.Logging;
+using AIOChatbot.Configuration;
+using AIOChatbot.Ingestions;
+using AIOChatbot.Logging;
 using System.Diagnostics;
 
-namespace chatbot2.Embeddings;
+namespace AIOChatbot.Embeddings;
 
 public class AzureOpenAIEmbedding : IEmbedding
 {

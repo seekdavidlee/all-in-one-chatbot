@@ -1,4 +1,4 @@
-﻿namespace chatbot2.Configuration;
+﻿namespace AIOChatbot.Configuration;
 
 public interface IConfig
 {

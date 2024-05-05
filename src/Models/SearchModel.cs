@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace chatbot2;
+namespace AIOChatbot;
 
 public class SearchModel
 {

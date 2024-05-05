@@ -7,17 +7,17 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["chatbot2/chatbot2.csproj", "chatbot2/"]
-RUN dotnet restore "./chatbot2/chatbot2.csproj"
+COPY ["src/AIOChatbot.csproj", "AIOChatbot/"]
+RUN dotnet restore "./src/AIOChatbot.csproj"
 COPY . .
-WORKDIR "/src/chatbot2"
-RUN dotnet build "./chatbot2.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/AIOChatbot"
+RUN dotnet build "./AIOChatbot.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./chatbot2.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./AIOChatbot.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "chatbot2.dll"]
+ENTRYPOINT ["dotnet", "AIOChatbot.dll"]

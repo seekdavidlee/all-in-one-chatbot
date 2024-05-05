@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public static class Extensions
 {

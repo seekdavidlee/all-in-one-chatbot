@@ -1,10 +1,10 @@
-﻿using chatbot2.Configuration;
-using chatbot2.Inferences;
-using chatbot2.Llms;
+﻿using AIOChatbot.Configuration;
+using AIOChatbot.Inferences;
+using AIOChatbot.Llms;
 using Microsoft.Extensions.Configuration;
 using System.Diagnostics;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class ChatbotCommand : ICommandAction
 {

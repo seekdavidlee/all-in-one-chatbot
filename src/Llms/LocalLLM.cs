@@ -2,7 +2,7 @@
 using LLama;
 using System.Text;
 
-namespace chatbot2.Llms;
+namespace AIOChatbot.Llms;
 
 public class LocalLLM : ILanguageModel
 {

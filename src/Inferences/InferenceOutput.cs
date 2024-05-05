@@ -1,6 +1,6 @@
-﻿using chatbot2.VectorDbs;
+﻿using AIOChatbot.VectorDbs;
 
-namespace chatbot2.Inferences;
+namespace AIOChatbot.Inferences;
 
 public class InferenceOutput
 {

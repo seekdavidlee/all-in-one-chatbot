@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 
-namespace chatbot2;
+namespace AIOChatbot;
 
 public interface ICommandAction
 {

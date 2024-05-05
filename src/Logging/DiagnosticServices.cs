@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.Metrics;
 using System.Diagnostics;
 
-namespace chatbot2.Logging;
+namespace AIOChatbot.Logging;
 
 public static class DiagnosticServices
 {

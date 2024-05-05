@@ -1,8 +1,8 @@
-﻿using chatbot2.Evals;
+﻿using AIOChatbot.Evals;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace chatbot2.Commands;
+namespace AIOChatbot.Commands;
 
 public class ShowEvaluationMetricResultCommand : ICommandAction
 {

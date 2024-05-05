@@ -1,6 +1,6 @@
-﻿using chatbot2.Llms;
+﻿using AIOChatbot.Llms;
 
-namespace chatbot2.Inferences;
+namespace AIOChatbot.Inferences;
 
 public interface IInferenceWorkflow
 {

@@ -1,6 +1,6 @@
 ﻿using HtmlAgilityPack;
 
-namespace chatbot2.Ingestions;
+namespace AIOChatbot.Ingestions;
 
 public class Page
 {

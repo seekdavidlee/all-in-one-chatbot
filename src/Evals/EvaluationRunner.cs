@@ -1,9 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Threading.Tasks.Dataflow;
-using chatbot2.Configuration;
-using chatbot2.Inferences;
+using AIOChatbot.Configuration;
+using AIOChatbot.Inferences;
 
-namespace chatbot2.Evals;
+namespace AIOChatbot.Evals;
 
 public class EvaluationRunner
 {

@@ -1,8 +1,8 @@
 ﻿using Azure.Storage.Blobs;
-using chatbot2.Configuration;
+using AIOChatbot.Configuration;
 using System.Collections.Concurrent;
 
-namespace chatbot2.Evals;
+namespace AIOChatbot.Evals;
 
 public class FileCache
 {

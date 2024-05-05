@@ -1,16 +1,16 @@
-﻿using chatbot2;
+﻿using AIOChatbot;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using chatbot2.Embeddings;
-using chatbot2.VectorDbs;
-using chatbot2.Llms;
-using chatbot2.Ingestions;
-using chatbot2.Commands;
-using chatbot2.Evals;
-using chatbot2.Inferences;
+using AIOChatbot.Embeddings;
+using AIOChatbot.VectorDbs;
+using AIOChatbot.Llms;
+using AIOChatbot.Ingestions;
+using AIOChatbot.Commands;
+using AIOChatbot.Evals;
+using AIOChatbot.Inferences;
 using System.Diagnostics;
-using chatbot2.Configuration;
-using chatbot2.Logging;
+using AIOChatbot.Configuration;
+using AIOChatbot.Logging;
 using Microsoft.Extensions.Logging;
 
 // add config
