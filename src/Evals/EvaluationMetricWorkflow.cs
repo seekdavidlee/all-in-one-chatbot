@@ -50,11 +50,10 @@ public class EvaluationMetricWorkflow
                 Index = i,
             };
 
-            prompt = prompt.Replace("{{chat_history_text}}", ""); //todo: implement
+            prompt = prompt.Replace("{{chat_history_text}}", groundTruth.ChatHistory is not null ? groundTruth.ChatHistory.FullBody() : "");
             prompt = prompt.Replace("{{question}}", groundTruth.Question);
             prompt = prompt.Replace("{{answer}}", output.Text);
             metricResult.RawPrompt = prompt.Replace("{{documents}}", output.Documents?.FullBody());
-
 
             Stopwatch sw = new();
             sw.Start();
