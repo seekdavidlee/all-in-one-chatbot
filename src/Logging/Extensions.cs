@@ -5,7 +5,7 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Resources;
 using OpenTelemetry;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using System.Reflection;
 using Microsoft.Extensions.Logging.Console;
 

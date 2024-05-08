@@ -1,5 +1,5 @@
 ﻿using Azure.AI.OpenAI;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using ChromaDBSharp.Client;
 
 namespace AIOChatbot.VectorDbs;

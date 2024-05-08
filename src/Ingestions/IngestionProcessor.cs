@@ -1,5 +1,5 @@
 ﻿using AIOChatbot.Commands;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using Microsoft.Extensions.Logging;
 
 namespace AIOChatbot.Ingestions;

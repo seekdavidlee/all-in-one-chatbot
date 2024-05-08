@@ -1,6 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Evals;
 using AIOChatbot.Models;
 using Microsoft.Extensions.Configuration;

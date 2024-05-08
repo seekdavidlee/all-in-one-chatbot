@@ -1,7 +1,7 @@
 ﻿
 using Azure;
 using Azure.AI.OpenAI;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Ingestions;
 using AIOChatbot.Logging;
 using System.Diagnostics;

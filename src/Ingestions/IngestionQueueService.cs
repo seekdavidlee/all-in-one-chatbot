@@ -1,6 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using System.Text;
 using System.Text.Json;
 

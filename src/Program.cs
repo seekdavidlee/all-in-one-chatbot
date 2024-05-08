@@ -9,7 +9,7 @@ using AIOChatbot.Commands;
 using AIOChatbot.Evals;
 using AIOChatbot.Inferences;
 using System.Diagnostics;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Logging;
 using Microsoft.Extensions.Logging;
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Threading.Tasks.Dataflow;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Inferences;
 
 namespace AIOChatbot.Evals;

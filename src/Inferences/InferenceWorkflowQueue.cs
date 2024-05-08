@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Queues;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Llms;
 using AIOChatbot.Models;
 using System.Text.Json;

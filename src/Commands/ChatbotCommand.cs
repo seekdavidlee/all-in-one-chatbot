@@ -1,4 +1,4 @@
-﻿using AIOChatbot.Configuration;
+﻿using AIOChatbot.Configurations;
 using AIOChatbot.Inferences;
 using AIOChatbot.Llms;
 using Microsoft.Extensions.Configuration;

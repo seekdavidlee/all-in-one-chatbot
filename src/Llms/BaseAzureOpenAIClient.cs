@@ -1,6 +1,6 @@
 ﻿using Azure.AI.OpenAI;
 using Azure;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 
 namespace AIOChatbot.Llms;
 
