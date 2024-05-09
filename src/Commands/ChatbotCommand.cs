@@ -41,6 +41,10 @@ public class ChatbotCommand : ICommandAction
             var result = await inferenceWorkflow.ExecuteAsync(userInput, chatHistory, cancellationToken);
             sw.Stop();
             chatEntry.Bot = result.Text;
+
+
+
+            //chatEntry.Intent = 
             chatEntry.UserTokens = result.PromptTokens;
             chatEntry.BotTokens = result.CompletionTokens;
             chatHistory.Chats.Add(chatEntry);
