@@ -7,11 +7,13 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 {
     public async Task<bool> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
     {
+        var stepData = context.GetStepData(nameof(DetermineIntentStep));
+
         var executionSettings = new OpenAIPromptExecutionSettings
         {
-            MaxTokens = 800,
-            Temperature = 0,
-            TopP = 1
+            MaxTokens = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.MaxTokens), 800),
+            Temperature = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.Temperature), 0),
+            TopP = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.TopP), 1)
         };
 
         string determineIntentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
@@ -23,14 +25,16 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
         };
 
         var result = await kernel.InvokePromptAsync(determineIntentPrompt, args, cancellationToken: cancellationToken);
-        
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return false;
+        }
+
         var intents = GetIntents(result.ToString());
 
-        var dict = new Dictionary<string, object>
-        {
-            [INTENTS_KEY] = intents
-        };
-        context.Steps.Add(nameof(DetermineIntentStep), dict);
+        stepData.AddStepOutput(INTENTS_KEY, string.Join(',', intents));
+
         return true;
     }
 

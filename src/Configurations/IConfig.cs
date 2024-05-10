@@ -10,14 +10,15 @@ public interface IConfig
     string CustomAuthProviderContent { get; }
     string AzureStorageConnectionString { get; }
     int TextEmbeddingVectorDimension { get; }
-    public string OpenTelemetryConnectionString { get; }
-    public int IngestionQueuePollingInterval { get; }
-    public string[] IngestionTypes { get; }
+    string OpenTelemetryConnectionString { get; }
+    int IngestionQueuePollingInterval { get; }
+    string[] IngestionTypes { get; }
+    string[] InferenceWorkflowSteps { get; }
     string LogLevel { get; }
     int Concurrency { get; }
     int IngestionBatchSize { get; }
     int MessageDequeueCount { get; }
-    public int IngestionReportEveryXSeconds { get; }
+    int IngestionReportEveryXSeconds { get; }
     string IngestionQueueName { get; }
     string EvaluationQueueName { get; }
     string IngestionProcessorType { get; }

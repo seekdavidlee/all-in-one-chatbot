@@ -44,8 +44,8 @@ public class InferenceWorkflow : IInferenceWorkflow
         Stopwatch stopwatch = new();
         stopwatch.Start();
 
-        var step0 = new StepOutput { Name = "chatHistory" };
-        step0.Items["Count"] = chatHistory?.Chats?.Count.ToString() ?? "-1";
+        var step0 = new InferenceStepData { Name = "chatHistory" };
+        step0.Outputs["Count"] = chatHistory?.Chats?.Count.ToString() ?? "-1";
         output.Steps.Add(step0);
 
         var intentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
@@ -55,9 +55,9 @@ public class InferenceWorkflow : IInferenceWorkflow
         var languageModel = languageModels.GetSelectedLanguageModel();
         var chatCompletionResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
 
-        var step1 = new StepOutput { Name = "DetermineIntent" };
-        step1.Items["CompletionTokens"] = chatCompletionResponse?.CompletionTokens?.ToString() ?? "-1";
-        step1.Items["PromptTokens"] = chatCompletionResponse?.PromptTokens?.ToString() ?? "-1";
+        var step1 = new InferenceStepData { Name = "DetermineIntent" };
+        step1.Outputs["CompletionTokens"] = chatCompletionResponse?.CompletionTokens?.ToString() ?? "-1";
+        step1.Outputs["PromptTokens"] = chatCompletionResponse?.PromptTokens?.ToString() ?? "-1";
         output.Steps.Add(step1);
 
         var intentResponse = chatCompletionResponse?.Text ?? throw new Exception("did not get response from llm");
@@ -81,10 +81,10 @@ public class InferenceWorkflow : IInferenceWorkflow
         for (int i = 0; i < parsedIntents.Length; i++)
         {
             var intent = parsedIntents[i];
-            step1.Items[$"parsedIntents_{i}"] = intent;
+            step1.Outputs[$"parsedIntents_{i}"] = intent;
             var docResults = (await vectorDb.SearchAsync(intent, cancellationToken)).ToArray();
 
-            step1.Items[$"parsedIntents_{i}_docs_count"] = docResults.Length.ToString();
+            step1.Outputs[$"parsedIntents_{i}_docs_count"] = docResults.Length.ToString();
             results.AddRange(docResults);
         }
 

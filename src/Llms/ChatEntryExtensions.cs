@@ -12,7 +12,7 @@ public static class ChatEntryExtensions
         {
             foreach (var step in inferenceOutput.Steps)
             {
-                if (step.Items.TryGetValue(ChatEntry.IntentsKey, out string? intentsText) && intentsText is not null)
+                if (step.Outputs.TryGetValue(ChatEntry.IntentsKey, out string? intentsText) && intentsText is not null)
                 {
                     intents.AddRange(intentsText.Split(','));
                 }

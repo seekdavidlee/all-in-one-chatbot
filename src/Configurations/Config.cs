@@ -19,6 +19,7 @@ public class Config : IConfig
         this.OpenTelemetryConnectionString = this.config.Get<string>("OpenTelemetryConnectionString");
         this.LogLevel = this.config.Get<string>("LogLevel").AsString(() => "Information");
         this.IngestionTypes = this.config.Get("IngestionTypes", (list) => list is null ? [] : list.Split(','));
+        this.InferenceWorkflowSteps = this.config.Get("InferenceWorkflowSteps", (list) => list is null ? [] : list.Split(','));
         this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
         this.Concurrency = this.config.Get<int>("Concurrency", v => v is null ? 3 : int.Parse(v));
         this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", v => v is null ? 5000 : int.Parse(v));
@@ -54,6 +55,7 @@ public class Config : IConfig
     public string InferenceResponseQueueName { get; }
     public string AzureQueueConnectionString { get; }
     public string[] IngestionTypes { get; }
+    public string[] InferenceWorkflowSteps { get; }
     public string LogLevel { get; }
     public int TextEmbeddingVectorDimension { get; }
     public int IngestionBatchSize { get; }
@@ -79,6 +81,7 @@ public class Config : IConfig
         this.config.Optional("AzureStorageConnectionString", this.AzureStorageConnectionString, hideValue: true);
         this.config.Require("OpenTelemetryConnectionString", this.OpenTelemetryConnectionString, hideValue: false);
         this.config.Optional("IngestionTypes", this.IngestionTypes, hideValue: false);
+        this.config.Optional("InferenceWorkflowSteps", this.InferenceWorkflowSteps, hideValue: false);
         this.config.Require("LogLevel", this.LogLevel, hideValue: false);
         this.config.Require("TextEmbeddingVectorDimension", this.TextEmbeddingVectorDimension, hideValue: false);
         this.config.Optional("Concurrency", this.Concurrency, hideValue: false);
