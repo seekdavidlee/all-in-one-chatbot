@@ -9,9 +9,19 @@ public class Config : IConfig
         this.config = config;
         this.AzureOpenAIEmbeddings = this.config.GetSecret<string>("AzureOpenAIEmbeddings").GetAwaiter().GetResult();
 
-        var conn = (this.config.GetSecret<string>("AzureSearchConnectionString").GetAwaiter().GetResult()).Split(';');
-        this.AzureSearchKey = conn[1];
-        this.AzureSearchEndpoint = conn[0];
+        var azureSearchConnectionStringResult = this.config.GetSecret<string>("AzureSearchConnectionString").GetAwaiter().GetResult();
+        if (azureSearchConnectionStringResult is not null)
+        {
+            var conn = azureSearchConnectionStringResult.Split(';');
+            this.AzureSearchKey = conn[1];
+            this.AzureSearchEndpoint = conn[0];
+        }
+        else
+        {
+            this.AzureSearchKey = string.Empty;
+            this.AzureSearchEndpoint = string.Empty;
+        }
+
         this.AzureOpenAIKey = this.config.GetSecret<string>("AzureOpenAIKey").GetAwaiter().GetResult();
         this.CustomAuthProviderUrl = this.config.GetSecret<string>("CustomAuthProviderUrl").GetAwaiter().GetResult();
         this.CustomAuthProviderContent = this.config.GetSecret<string>("CustomAuthProviderContent").GetAwaiter().GetResult();
@@ -20,7 +30,7 @@ public class Config : IConfig
         this.LogLevel = this.config.Get<string>("LogLevel").AsString(() => "Information");
         this.IngestionTypes = this.config.Get("IngestionTypes", (list) => list is null ? [] : list.Split(','));
         this.InferenceWorkflowSteps = this.config.Get("InferenceWorkflowSteps", (list) => list is null ? [] : list.Split(','));
-        this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", int.Parse);
+        this.TextEmbeddingVectorDimension = this.config.Get<int>("TextEmbeddingVectorDimension", v => v is null ? 0 : int.Parse(v));
         this.Concurrency = this.config.Get<int>("Concurrency", v => v is null ? 3 : int.Parse(v));
         this.IngestionBatchSize = this.config.Get<int>("IngestionBatchSize", v => v is null ? 5000 : int.Parse(v));
         this.IngestionReportEveryXSeconds = this.config.Get<int>("IngestionReportEveryXSeconds", v => v is null ? 15 : int.Parse(v));

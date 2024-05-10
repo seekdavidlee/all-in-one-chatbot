@@ -10,32 +10,15 @@ namespace AIOChatbot.Embeddings;
 
 public class AzureOpenAIEmbedding : IEmbedding
 {
-    private readonly string[] deploymentModels;
     private readonly int maxRetry = 3;
     private readonly IngestionReporter ingestionReporter;
-    private readonly OpenAIClient[] openAIClients;
+    private readonly IConfig config;
+    private OpenAIClient[]? openAIClients;
+    private readonly object lockObj = new();
+    private string[]? deploymentModels;
 
     public AzureOpenAIEmbedding(IngestionReporter ingestionReporter, IConfig config)
     {
-        var deploymentsStr = config.AzureOpenAIEmbeddings;
-        var deployments = deploymentsStr.Split(';');
-
-        deploymentModels = new string[deployments.Length];
-
-        openAIClients = deployments.Select((x, i) =>
-        {
-            var parts = x.Split(',');
-            if (parts.Length != 3)
-            {
-                throw new Exception($"Invalid AzureOpenAIEmbeddings format at index {i}!");
-            }
-
-            deploymentModels[i] = parts[2];
-
-            AzureKeyCredential credentials = new(parts[1]);
-            return new OpenAIClient(new Uri(parts[0]), credentials);
-        }).ToArray();
-
         var maxRetryStr = Environment.GetEnvironmentVariable("AzureOpenAIEmbeddingMaxRetry");
         if (maxRetryStr is not null)
         {
@@ -46,19 +29,42 @@ public class AzureOpenAIEmbedding : IEmbedding
         }
 
         this.ingestionReporter = ingestionReporter;
+        this.config = config;
     }
     private int currentIndex;
-    private (OpenAIClient Client, int Index) GetNextClient()
+    private (OpenAIClient Client, string deploymentName) GetNextClient()
     {
-        lock (openAIClients)
+        lock (lockObj)
         {
+            if (openAIClients is null)
+            {
+                var deploymentsStr = config.AzureOpenAIEmbeddings;
+                var deployments = deploymentsStr.Split(';');
+
+                deploymentModels = new string[deployments.Length];
+
+                openAIClients = deployments.Select((x, i) =>
+                {
+                    var parts = x.Split(',');
+                    if (parts.Length != 3)
+                    {
+                        throw new Exception($"Invalid AzureOpenAIEmbeddings format at index {i}!");
+                    }
+
+                    deploymentModels[i] = parts[2];
+
+                    AzureKeyCredential credentials = new(parts[1]);
+                    return new OpenAIClient(new Uri(parts[0]), credentials);
+                }).ToArray();
+            }
+
             if (openAIClients.Length == 0)
             {
                 throw new InvalidOperationException("No clients available");
             }
 
             currentIndex = (currentIndex + 1) % openAIClients.Length;
-            return (openAIClients[currentIndex], currentIndex);
+            return (openAIClients[currentIndex], deploymentModels is not null ? deploymentModels[currentIndex] : throw new Exception("deploymentModels is null"));
         }
     }
 
@@ -69,18 +75,17 @@ public class AzureOpenAIEmbedding : IEmbedding
         {
             try
             {
-                var (Client, Index) = GetNextClient();
+                var (Client, DeploymentName) = GetNextClient();
 
-                var deployment = deploymentModels[Index];
                 Stopwatch sw = new();
                 sw.Start();
-                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(deployment, textList), cancellationToken);
+                var response = await Client.GetEmbeddingsAsync(new EmbeddingsOptions(DeploymentName, textList), cancellationToken);
                 sw.Stop();
 
                 DiagnosticServices.RecordEmbeddingTokens(
-                    response.Value.Usage.TotalTokens, sw.ElapsedMilliseconds, textList.Length, deployment);
+                    response.Value.Usage.TotalTokens, sw.ElapsedMilliseconds, textList.Length, DeploymentName);
                 DiagnosticServices.RecordEmbeddingTokensPerSecond(
-                    response.Value.Usage.TotalTokens / sw.Elapsed.TotalSeconds, sw.ElapsedMilliseconds, textList.Length, deployment);
+                    response.Value.Usage.TotalTokens / sw.Elapsed.TotalSeconds, sw.ElapsedMilliseconds, textList.Length, DeploymentName);
 
                 this.ingestionReporter.IncrementEmbeddingTokensProcessed(response.Value.Usage.TotalTokens);
                 return response.Value.Data.Select(x => x.Embedding.ToArray()).ToList();
