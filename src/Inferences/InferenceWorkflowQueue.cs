@@ -8,18 +8,18 @@ namespace AIOChatbot.Inferences;
 
 public class InferenceWorkflowQueue : IInferenceWorkflow
 {
-    private readonly QueueClient requestQueueClient;
-    private readonly QueueClient responseQueueClient;
     private readonly IConfig config;
-
+    private QueueClient? requestQueueClient;
+    private QueueClient? responseQueueClient;
     public InferenceWorkflowQueue(IConfig config)
     {
-        requestQueueClient = new QueueClient(config.AzureQueueConnectionString, config.InferenceQueueName);
-        responseQueueClient = new QueueClient(config.AzureQueueConnectionString, config.InferenceResponseQueueName);
         this.config = config;
     }
     public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, CancellationToken cancellationToken)
     {
+        requestQueueClient ??= new QueueClient(config.AzureQueueConnectionString, config.InferenceQueueName);
+        responseQueueClient ??= new QueueClient(config.AzureQueueConnectionString, config.InferenceResponseQueueName);
+
         var id = Guid.NewGuid();
         await requestQueueClient.SendMessageAsync(JsonSerializer.Serialize(new InferenceRequestQueueMessage
         {
