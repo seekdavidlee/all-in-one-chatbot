@@ -6,18 +6,20 @@ using System.Diagnostics;
 
 namespace AIOChatbot.Commands;
 
-public class ChatbotCommand : ICommandAction
+public class ConsoleChatbotCommand : ICommandAction
 {
     private readonly IEnumerable<IInferenceWorkflow> inferenceWorkflows;
     private readonly IConfig config;
 
-    public ChatbotCommand(IConfig config, IEnumerable<IInferenceWorkflow> inferenceWorkflows)
+    public ConsoleChatbotCommand(IConfig config, IEnumerable<IInferenceWorkflow> inferenceWorkflows)
     {
         this.inferenceWorkflows = inferenceWorkflows;
         this.config = config;
     }
 
     public string Name => "chatbot";
+
+    public bool LongRunning => true;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
@@ -40,16 +42,22 @@ public class ChatbotCommand : ICommandAction
             sw.Start();
             var result = await inferenceWorkflow.ExecuteAsync(userInput, chatHistory, cancellationToken);
             sw.Stop();
-            chatEntry.Bot = result.Text;
+            if (result.ErrorMessage is not null)
+            {
+                Console.WriteLine($"Inference error: {result.ErrorMessage}");
+            }
+            else
+            {
+                chatEntry.Bot = result.Text;
 
+                //chatEntry.Intent = 
+                chatEntry.UserTokens = result.TotalPromptTokens;
+                chatEntry.BotTokens = result.TotalCompletionTokens;
+                chatHistory.Chats.Add(chatEntry);
 
+                Console.WriteLine($"Bot: {result.Text}");
+            }
 
-            //chatEntry.Intent = 
-            chatEntry.UserTokens = result.TotalPromptTokens;
-            chatEntry.BotTokens = result.TotalCompletionTokens;
-            chatHistory.Chats.Add(chatEntry);
-
-            Console.WriteLine($"Bot: {result.Text}");
             Console.WriteLine("documents found: {0}, inferenceWorkflow total time taken: {1} ms", result.Documents?.Length, result.DurationInMilliseconds);
             Console.WriteLine("total time taken: {0} ms", sw.ElapsedMilliseconds);
         }

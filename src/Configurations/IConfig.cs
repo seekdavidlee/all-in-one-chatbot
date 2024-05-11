@@ -2,6 +2,7 @@
 
 public interface IConfig
 {
+    string ChatbotHttpEndpoint { get; }
     string AzureOpenAILLMDeploymentModel { get; }
     string AzureOpenAIEndpoint { get; }
     string AzureOpenAIEmbeddings { get; }

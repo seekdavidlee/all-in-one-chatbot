@@ -132,4 +132,5 @@ public abstract class QueueCommandBase<T> : ICommandAction
     }
 
     public string Name => commandName;
+    public bool LongRunning => true;
 }

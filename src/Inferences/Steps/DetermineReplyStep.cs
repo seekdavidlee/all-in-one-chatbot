@@ -38,7 +38,7 @@ public class DetermineReplyStep : IInferenceWorkflowStep
         };
 
         string determineReplyPrompt = await Util.GetResourceAsync("DetermineReply.txt");
-        var result = await kernel.InvokePromptAsync(determineReplyPrompt, args);
+        var result = await kernel.InvokePromptAsync(determineReplyPrompt, args, cancellationToken: cancellationToken);
 
         if (result is null)
         {

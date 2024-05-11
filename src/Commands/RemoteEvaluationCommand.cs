@@ -25,6 +25,7 @@ public class RemoteEvaluationCommand : ICommandAction
     }
 
     public string Name => "remote-evals";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

@@ -13,7 +13,6 @@ public class ProcessQueueEvaluationCommand : QueueCommandBase<GroundTruthQueueMe
     private readonly IConfig config;
     private readonly EvaluationRunner evaluationRunner;
 
-
     public ProcessQueueEvaluationCommand(ILogger<ProcessQueueEvaluationCommand> logger, IConfig config, EvaluationRunner evaluationRunner)
         : base("ingest-queue-evals", config.EvaluationQueueName, logger, config)
     {

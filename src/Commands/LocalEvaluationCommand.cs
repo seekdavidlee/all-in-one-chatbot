@@ -27,6 +27,7 @@ public class LocalEvaluationCommand : ICommandAction
     }
 
     public string Name => "local-evals";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

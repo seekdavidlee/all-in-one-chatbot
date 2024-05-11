@@ -21,6 +21,7 @@ public class Config : IConfig
             this.AzureSearchKey = string.Empty;
             this.AzureSearchEndpoint = string.Empty;
         }
+        this.ChatbotHttpEndpoint = this.config.Get<string>("ChatbotHttpEndpoint");
         this.AzureOpenAIEndpoint = this.config.Get<string>("AzureOpenAIEndpoint");
         this.AzureOpenAILLMDeploymentModel = this.config.Get<string>("AzureOpenAILLMDeploymentModel");
         this.AzureOpenAIKey = this.config.GetSecret<string>("AzureOpenAIKey").GetAwaiter().GetResult();
@@ -51,6 +52,7 @@ public class Config : IConfig
         this.InferenceProcessorType = this.config.Get<string>("InferenceProcessorType");
         this.MessageDequeueCount = this.config.Get<int>("MessageDequeueCount", v => v is null ? 5 : int.Parse(v));
     }
+    public string ChatbotHttpEndpoint { get; }
     public string AzureOpenAIEndpoint { get; }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }

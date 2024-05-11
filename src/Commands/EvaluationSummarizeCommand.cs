@@ -15,6 +15,7 @@ public class EvaluationSummarizeCommand : ICommandAction
         this.logger = logger;
     }
     public string Name => "summarize";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

@@ -44,7 +44,7 @@ foreach (var ingestionType in config.IngestionTypes)
     }
     services.AddSingleton(typeof(IIngestionDataSource), Type.GetType(ingestionType) ?? throw new Exception($"invalid IVectorDbIngestion type {ingestionType}"));
 }
-services.AddSingleton<ICommandAction, ChatbotCommand>();
+services.AddSingleton<ICommandAction, ConsoleChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();
 services.AddSingleton<ICommandAction, LocalEvaluationCommand>();
@@ -56,6 +56,7 @@ services.AddSingleton<ICommandAction, ImportMetricsCommand>();
 services.AddSingleton<ICommandAction, RemoteEvaluationCommand>();
 services.AddSingleton<ICommandAction, ProcessQueueEvaluationCommand>();
 services.AddSingleton<ICommandAction, ProcessQueueInferenceCommand>();
+services.AddSingleton<ICommandAction, HttpChatbotCommand>();
 services.AddSingleton<EvaluationRunner>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
@@ -94,8 +95,13 @@ if (command is not null)
         cts.Cancel();
     };
 
-    var sw = new Stopwatch();
-    sw.Start();
+    Stopwatch? sw = null;
+    if (!command.LongRunning)
+    {
+        sw = new Stopwatch();
+        sw.Start();
+    }
+
     try
     {
         await command.ExecuteAsync(argsConfig, cancellationToken: cts.Token);
@@ -106,11 +112,13 @@ if (command is not null)
     }
     finally
     {
-        sw.Stop();
+        if (sw is not null)
+        {
+            sw.Stop();
+            logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
+        }
+
     }
-
-    logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
-
     meterProvider.Dispose();
     traceProvider.Dispose();
 }

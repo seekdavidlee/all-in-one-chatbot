@@ -33,6 +33,7 @@ public class IngestCommand : ICommandAction
     }
 
     public string Name => "ingest";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

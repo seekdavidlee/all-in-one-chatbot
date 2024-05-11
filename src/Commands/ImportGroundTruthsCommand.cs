@@ -21,6 +21,7 @@ public class ImportGroundTruthsCommand : ICommandAction
         this.config = config;
     }
     public string Name => "import-ground-truths";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {
