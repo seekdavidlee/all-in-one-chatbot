@@ -1,11 +1,12 @@
 ﻿using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel;
+using Azure.AI.OpenAI;
 
 namespace AIOChatbot.Inferences.Steps;
 
 public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 {
-    public async Task<bool> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
+    public async Task<InferenceWorkflowStepResult> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
     {
         var stepData = context.GetStepData(nameof(DetermineIntentStep));
 
@@ -28,16 +29,22 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 
         if (cancellationToken.IsCancellationRequested)
         {
-            return false;
+            return new InferenceWorkflowStepResult(false, "user cancelled");
+        }
+
+        if (result.Metadata is not null && result.Metadata.TryGetValue(USAGE_KEY, out object? o) && o is CompletionsUsage usage)
+        {
+            stepData.AddStepOutput(USAGE_KEY, usage);
         }
 
         var intents = GetIntents(result.ToString());
 
-        stepData.AddStepOutput(INTENTS_KEY, string.Join(',', intents));
+        stepData.AddStepOutput(INTENTS_KEY, intents);
 
-        return true;
+        return new InferenceWorkflowStepResult(true);
     }
 
+    public const string USAGE_KEY = "Usage";
     public const string INTENTS_KEY = "intents";
 
     private static string GetPreviousIntent(InferenceWorkflowContext context)

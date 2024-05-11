@@ -2,5 +2,5 @@
 
 public interface IInferenceWorkflowStep
 {
-    Task<bool> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken);
+    Task<InferenceWorkflowStepResult> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken);
 }

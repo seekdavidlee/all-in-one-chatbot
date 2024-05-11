@@ -2,16 +2,17 @@
 
 public class InferenceStepData
 {
-    public InferenceStepData()
+    public InferenceStepData(string name)
     {
+        Name = name;
         Outputs = [];
         Inputs = [];
     }
 
-    public string? Name { get; set; }
+    public string? Name { get; }
 
     public Dictionary<string, string> Inputs { get; set; }
-    public Dictionary<string, string> Outputs { get; set; }
+    public Dictionary<string, object> Outputs { get; set; }
 
     public int TryGetInputValue(string key, int defaultValue)
     {
@@ -23,7 +24,17 @@ public class InferenceStepData
         return defaultValue;
     }
 
-    public void AddStepOutput(string name, string value)
+    public T GetOutputValue<T>(string key)
+    {
+        if (Outputs.TryGetValue(key, out object? value))
+        {
+            return (T)value;
+        }
+
+        throw new Exception($"key: {key} is missing");
+    }
+
+    public void AddStepOutput(string name, object value)
     {
         Outputs[name] = value;
     }

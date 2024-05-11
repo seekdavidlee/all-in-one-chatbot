@@ -12,6 +12,7 @@ using System.Diagnostics;
 using AIOChatbot.Configurations;
 using AIOChatbot.Logging;
 using Microsoft.Extensions.Logging;
+using AIOChatbot.Inferences.Steps;
 
 // add config
 var netConfig = new NetBricks.Config();
@@ -58,8 +59,11 @@ services.AddSingleton<ICommandAction, ProcessQueueInferenceCommand>();
 services.AddSingleton<EvaluationRunner>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
-services.AddSingleton<IInferenceWorkflow, InferenceWorkflow>();
+services.AddSingleton<IInferenceWorkflow, SKInferenceWorkflow>();
 services.AddSingleton<IInferenceWorkflow, InferenceWorkflowQueue>();
+services.AddSingleton<IInferenceWorkflowStep, DetermineIntentStep>();
+services.AddSingleton<IInferenceWorkflowStep, RetrievedDocumentsStep>();
+services.AddSingleton<IInferenceWorkflowStep, DetermineReplyStep>();
 services.AddSingleton<EvaluationMetricWorkflow>();
 services.AddSingleton<FileCache>();
 services.AddSingleton<ReportRepository>();
@@ -67,6 +71,7 @@ services.AddSingleton<EvaluationSummarizeWorkflow>();
 services.AddSingleton<IngestionReporter>();
 services.AddSingleton<IIngestionProcessor, IngestionQueueService>();
 services.AddSingleton<IIngestionProcessor, IngestionProcessor>();
+services.AddSK();
 
 var (traceProvider, meterProvider) = services.AddDiagnosticsServices(config, DiagnosticServices.Source.Name);
 

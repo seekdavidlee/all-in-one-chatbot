@@ -45,8 +45,8 @@ public class ChatbotCommand : ICommandAction
 
 
             //chatEntry.Intent = 
-            chatEntry.UserTokens = result.PromptTokens;
-            chatEntry.BotTokens = result.CompletionTokens;
+            chatEntry.UserTokens = result.TotalPromptTokens;
+            chatEntry.BotTokens = result.TotalCompletionTokens;
             chatHistory.Chats.Add(chatEntry);
 
             Console.WriteLine($"Bot: {result.Text}");

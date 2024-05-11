@@ -1,5 +1,4 @@
 ﻿using Azure;
-using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
@@ -17,8 +16,7 @@ public class AzureAISearch : IVectorDb
     private readonly IEnumerable<IEmbedding> embeddingList;
     private readonly IConfig config;
     private readonly ILogger<AzureAISearch> logger;
-    private Uri? azureSearchEndpoint;
-    private AzureKeyCredential? keyCredentials;
+
     private readonly ConcurrentDictionary<string, SearchClient> searchClients = [];
 
     public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config, ILogger<AzureAISearch> logger)
@@ -32,9 +30,8 @@ public class AzureAISearch : IVectorDb
     {
         if (searchIndexClient is null)
         {
-            azureSearchEndpoint = new(config.AzureSearchEndpoint);
-            keyCredentials = new(config.AzureSearchKey);
-            searchIndexClient = new(azureSearchEndpoint, keyCredentials);
+            AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
+            searchIndexClient = new(new Uri(this.config.AzureSearchEndpoint), keyCredentials);
         }
 
         return searchIndexClient;
@@ -70,7 +67,8 @@ public class AzureAISearch : IVectorDb
     {
         if (!searchClients.TryGetValue(collectionName, out var searchClient))
         {
-            searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
+            AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
+            searchClient = new SearchClient(new Uri(this.config.AzureSearchEndpoint), collectionName, keyCredentials);
             searchClients.TryAdd(collectionName, searchClient);
         }
 
@@ -99,17 +97,19 @@ public class AzureAISearch : IVectorDb
         return (success, error);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)
+    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, CancellationToken cancellationToken)
     {
         var embedding = embeddingList.GetSelectedEmbedding(config);
-        var embeddings = (await embedding.GetEmbeddingsAsync([searchText], cancellationToken)).Single();
-
-        var query = new VectorizedQuery(embeddings);
-        query.Fields.Add("contentVector");
-        query.KNearestNeighborsCount = 5;
+        var embeddings = (await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken));
 
         var vectorSearchOptions = new VectorSearchOptions();
-        vectorSearchOptions.Queries.Add(query);
+        foreach (var embed in embeddings)
+        {
+            var query = new VectorizedQuery(embed);
+            query.Fields.Add("contentVector");
+            query.KNearestNeighborsCount = 5;
+            vectorSearchOptions.Queries.Add(query);
+        }
 
         var searchOptions = new SearchOptions
         {

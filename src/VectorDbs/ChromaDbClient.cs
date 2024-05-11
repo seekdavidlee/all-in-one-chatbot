@@ -9,7 +9,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
     private ChromaDBClient? client;
     private HttpClient? httpClient;
     private ICollectionClient? collectionClient;
-    private readonly IEnumerable< IEmbedding> embeddingList;
+    private readonly IEnumerable<IEmbedding> embeddingList;
     private readonly IConfig config;
     private float? minimumScore = 0.8f;
 
@@ -94,14 +94,14 @@ public class ChromaDbClient : IVectorDb, IDisposable
         return collectionClient.DeleteAsync([config.CollectionName]);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)
+    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, CancellationToken cancellationToken)
     {
         if (collectionClient is null)
         {
             throw new Exception("CollectionClient is not initialized!");
         }
         var embedding = embeddingList.GetSelectedEmbedding(config);
-        var embeddings = await embedding.GetEmbeddingsAsync([searchText], cancellationToken);
+        var embeddings = await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken);
         var results = await collectionClient.QueryAsync(queryEmbeddings: embeddings, numberOfResults: 5);
         if (results is null || results.Ids is null || results.Distances is null)
         {

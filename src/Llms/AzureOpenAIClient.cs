@@ -6,25 +6,19 @@ namespace AIOChatbot.Llms;
 public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
 {
     private string? deploymentName;
-    public AzureOpenAIClient(IConfig config) : base(config) { }
+    public AzureOpenAIClient(IConfig config) : base(config)
+    {
+        this.config = config;
+    }
 
     private const int DefaultMaxTokens = 4000;
-
-    private string GetDeploymentName()
-    {
-        if (deploymentName is null)
-        {
-            deploymentName = Environment.GetEnvironmentVariable("AzureOpenAILLMDeploymentModel") ?? throw new Exception("Missing AzureOpenAILLMDeploymentModel!");
-        }
-
-        return deploymentName;
-    }
+    private readonly IConfig config;
 
     public async Task<ChatCompletionResponse> GetChatCompletionsAsync(string text, LlmOptions options, ChatHistory? chatHistory = null)
     {
         var chatCompletionsOptions = new ChatCompletionsOptions
         {
-            DeploymentName = options.DeploymentName ?? GetDeploymentName(),
+            DeploymentName = options.DeploymentName ?? config.AzureOpenAILLMDeploymentModel,
             MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
             Temperature = options.Temperature ?? 0,
         };

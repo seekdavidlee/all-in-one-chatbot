@@ -2,6 +2,8 @@
 
 public interface IConfig
 {
+    string AzureOpenAILLMDeploymentModel { get; }
+    string AzureOpenAIEndpoint { get; }
     string AzureOpenAIEmbeddings { get; }
     string AzureSearchKey { get; }
     string AzureSearchEndpoint { get; }

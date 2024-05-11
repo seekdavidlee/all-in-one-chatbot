@@ -44,7 +44,7 @@ public class InferenceWorkflow : IInferenceWorkflow
         Stopwatch stopwatch = new();
         stopwatch.Start();
 
-        var step0 = new InferenceStepData { Name = "chatHistory" };
+        var step0 = new InferenceStepData("chatHistory");
         step0.Outputs["Count"] = chatHistory?.Chats?.Count.ToString() ?? "-1";
         output.Steps.Add(step0);
 
@@ -55,7 +55,7 @@ public class InferenceWorkflow : IInferenceWorkflow
         var languageModel = languageModels.GetSelectedLanguageModel();
         var chatCompletionResponse = await languageModel.GetChatCompletionsAsync(intentPrompt, new LlmOptions());
 
-        var step1 = new InferenceStepData { Name = "DetermineIntent" };
+        var step1 = new InferenceStepData("DetermineIntent");
         step1.Outputs["CompletionTokens"] = chatCompletionResponse?.CompletionTokens?.ToString() ?? "-1";
         step1.Outputs["PromptTokens"] = chatCompletionResponse?.PromptTokens?.ToString() ?? "-1";
         output.Steps.Add(step1);
@@ -77,16 +77,7 @@ public class InferenceWorkflow : IInferenceWorkflow
         }
 
         var vectorDb = vectorDbs.GetSelectedVectorDb();
-        List<IndexedDocument> results = [];
-        for (int i = 0; i < parsedIntents.Length; i++)
-        {
-            var intent = parsedIntents[i];
-            step1.Outputs[$"parsedIntents_{i}"] = intent;
-            var docResults = (await vectorDb.SearchAsync(intent, cancellationToken)).ToArray();
-
-            step1.Outputs[$"parsedIntents_{i}_docs_count"] = docResults.Length.ToString();
-            results.AddRange(docResults);
-        }
+        var results = (await vectorDb.SearchAsync(parsedIntents, cancellationToken)).ToArray();
 
         var resultsArr = results.ToArray();
         var replyPrompt = await Util.GetResourceAsync("DetermineReply.txt");
@@ -104,8 +95,8 @@ public class InferenceWorkflow : IInferenceWorkflow
         output.Text = replyResponse.Text;
         output.DurationInMilliseconds = stopwatch.ElapsedMilliseconds;
         output.Documents = resultsArr;
-        output.CompletionTokens = replyResponse.CompletionTokens;
-        output.PromptTokens = replyResponse.PromptTokens;
+        output.TotalCompletionTokens = replyResponse.CompletionTokens;
+        output.TotalPromptTokens = replyResponse.PromptTokens;
 
         return output;
     }

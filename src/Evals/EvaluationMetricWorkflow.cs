@@ -69,8 +69,8 @@ public class EvaluationMetricWorkflow
                 metricResult.Success = true;
                 metricResult.CompletionTokens = llmResult.CompletionTokens;
                 metricResult.PromptTokens = llmResult.PromptTokens;
-                metricResult.InferencePromptTokens = output.PromptTokens;
-                metricResult.InferenceCompletionTokens = output.CompletionTokens;
+                metricResult.InferencePromptTokens = output.TotalPromptTokens;
+                metricResult.InferenceCompletionTokens = output.TotalCompletionTokens;
             }
             catch (Exception ex)
             {

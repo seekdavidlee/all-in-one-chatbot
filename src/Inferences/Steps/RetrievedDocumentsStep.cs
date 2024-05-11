@@ -1,6 +1,4 @@
-﻿/*
-
-namespace AIOChatbot.Inferences.Steps;
+﻿namespace AIOChatbot.Inferences.Steps;
 
 public class RetrievedDocumentsStep : IInferenceWorkflowStep
 {
@@ -11,46 +9,28 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
         this.vectorDbs = vectorDbs;
     }
 
-    public async Task<bool> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
+    private IVectorDb? vectorDb;
+    public IVectorDb GetSelectedVectorDb()
     {
-        var vectorDb = vectorDbs.GetSelectedVectorDb();
-        var results = vectorDb.SearchAsync(GetIntentText(context), cancellationToken);
-
-        List<SearchResultModel> searchResults = [];
-        await foreach (var result in results)
+        if (vectorDb is null)
         {
-            searchResults.Add(result.SearchResultModel);
+            vectorDb = vectorDbs.GetSelectedVectorDb();
         }
 
-        var dict = new Dictionary<string, object>
-        {
-            [SEARCH_RESULTS_KEY] = searchResults
-        };
-        context.Steps.Add(nameof(RetrievedDocumentsStep), dict);
-
-        return true;
+        return vectorDb;
     }
 
-    public static string GetIntentText(InferenceWorkflowContext context)
+    public async Task<InferenceWorkflowStepResult> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
     {
-        var src = context.Steps[nameof(DetermineIntentStep)];
-        var intents = (string[])src[DetermineIntentStep.INTENTS_KEY];
+        var stepData = context.GetStepData(nameof(RetrievedDocumentsStep));
 
-        var intent = intents.SingleOrDefault();
+        var vectorDb = GetSelectedVectorDb();
 
-        if (intent is null)
-        {
-            var input = (PromptflowRequest)context.Steps[nameof(InputStep)][InputStep.PROMPTFLOW_REQUEST_KEY];
-            if (input.Query is null)
-            {
-                throw new InvalidOperationException("Input Query is null");
-            }
+        var determineIntentStep = context.GetStepData(nameof(DetermineIntentStep));
+        var results = await vectorDb.SearchAsync(determineIntentStep.GetOutputValue<string[]>(DetermineIntentStep.INTENTS_KEY), cancellationToken);
 
-            return input.Query;
-        }
-        return intent;
+        stepData.AddStepOutput(SEARCH_RESULTS_KEY, results.ToList());
+
+        return new InferenceWorkflowStepResult(true);
     }
-
-
 }
-*/

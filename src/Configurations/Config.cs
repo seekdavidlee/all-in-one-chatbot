@@ -21,7 +21,8 @@ public class Config : IConfig
             this.AzureSearchKey = string.Empty;
             this.AzureSearchEndpoint = string.Empty;
         }
-
+        this.AzureOpenAIEndpoint = this.config.Get<string>("AzureOpenAIEndpoint");
+        this.AzureOpenAILLMDeploymentModel = this.config.Get<string>("AzureOpenAILLMDeploymentModel");
         this.AzureOpenAIKey = this.config.GetSecret<string>("AzureOpenAIKey").GetAwaiter().GetResult();
         this.CustomAuthProviderUrl = this.config.GetSecret<string>("CustomAuthProviderUrl").GetAwaiter().GetResult();
         this.CustomAuthProviderContent = this.config.GetSecret<string>("CustomAuthProviderContent").GetAwaiter().GetResult();
@@ -50,10 +51,12 @@ public class Config : IConfig
         this.InferenceProcessorType = this.config.Get<string>("InferenceProcessorType");
         this.MessageDequeueCount = this.config.Get<int>("MessageDequeueCount", v => v is null ? 5 : int.Parse(v));
     }
+    public string AzureOpenAIEndpoint { get; }
     public string AzureOpenAIEmbeddings { get; }
     public string AzureSearchKey { get; }
     public string AzureSearchEndpoint { get; }
     public string AzureOpenAIKey { get; }
+    public string AzureOpenAILLMDeploymentModel { get; }
     public string CustomAuthProviderUrl { get; }
     public string CustomAuthProviderContent { get; }
     public string AzureStorageConnectionString { get; }
@@ -83,6 +86,8 @@ public class Config : IConfig
 
     public void Validate()
     {
+        this.config.Optional("AzureOpenAIEndpoint", this.AzureOpenAIEndpoint, hideValue: false);
+        this.config.Optional("AzureOpenAILLMDeploymentModel", this.AzureOpenAILLMDeploymentModel, hideValue: false);
         this.config.Optional("AzureOpenAIEmbeddings", this.AzureOpenAIEmbeddings, hideValue: true);
         this.config.Optional("AzureSearchKey", this.AzureSearchKey, hideValue: true);
         this.config.Optional("AzureSearchEndpoint", this.AzureSearchEndpoint, hideValue: false);
