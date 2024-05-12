@@ -1,5 +1,6 @@
 ﻿using AIOChatbot.Configurations;
 using AIOChatbot.Llms;
+using System.Diagnostics;
 
 namespace AIOChatbot.Inferences;
 
@@ -16,7 +17,10 @@ public class SKInferenceWorkflow : IInferenceWorkflow
 
     public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, CancellationToken cancellationToken)
     {
-        var inferenceOutput = new InferenceOutput();
+        var sw = new Stopwatch();
+        sw.Start();
+
+        var inferenceOutput = new InferenceOutput { Documents = [] };
         var context = new InferenceWorkflowContext(userInput, chatHistory);
         foreach (var stepName in config.InferenceWorkflowSteps)
         {
@@ -37,12 +41,30 @@ public class SKInferenceWorkflow : IInferenceWorkflow
                 inferenceOutput.ErroredStepName = stepName;
                 break;
             }
+            else
+            {
+                if (stepResult.Documents is not null)
+                {
+                    inferenceOutput.Documents = stepResult.Documents;
+                }
+
+                if (stepResult.Intents is not null)
+                {
+                    inferenceOutput.Intents = stepResult.Intents;
+                }
+
+                inferenceOutput.TotalCompletionTokens += stepResult.TotalCompletionTokens;
+                inferenceOutput.TotalPromptTokens += stepResult.TotalPromptTokens;
+                inferenceOutput.TotalEmbeddingTokens += stepResult.TotalEmbeddingTokens;
+            }
         }
 
-        return new InferenceOutput
-        {
-            Text = context.BotResponse,
-            Steps = context.StepsData
-        };
+        sw.Stop();
+
+        inferenceOutput.Text = context.BotResponse;
+        inferenceOutput.Steps = context.StepsData;
+        inferenceOutput.DurationInMilliseconds = sw.ElapsedMilliseconds;
+
+        return inferenceOutput;
     }
 }

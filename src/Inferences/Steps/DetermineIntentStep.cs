@@ -41,7 +41,7 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 
         stepData.AddStepOutput(INTENTS_KEY, intents);
 
-        return new InferenceWorkflowStepResult(true);
+        return new InferenceWorkflowStepResult(true) { Intents = intents };
     }
 
     public const string USAGE_KEY = "Usage";

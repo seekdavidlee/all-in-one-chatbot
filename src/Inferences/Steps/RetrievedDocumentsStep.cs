@@ -28,9 +28,10 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
 
         var determineIntentStep = context.GetStepData(nameof(DetermineIntentStep));
         var results = await vectorDb.SearchAsync(determineIntentStep.GetOutputValue<string[]>(DetermineIntentStep.INTENTS_KEY), cancellationToken);
+        
+        var docs = results.ToList();
+        stepData.AddStepOutput(SEARCH_RESULTS_KEY, docs);
 
-        stepData.AddStepOutput(SEARCH_RESULTS_KEY, results.ToList());
-
-        return new InferenceWorkflowStepResult(true);
+        return new InferenceWorkflowStepResult(true) { Documents = [.. docs] };
     }
 }

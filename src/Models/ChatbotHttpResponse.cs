@@ -1,6 +1,6 @@
 ﻿namespace AIOChatbot.Models;
 
-public class ChatbotHttpResponse : ChatbotHttpResponseMetrics
+public class ChatbotHttpResponse : ChatbotHttpResponseStepOutputs
 {
     public string? Bot { get; set; }
 }
