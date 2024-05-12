@@ -15,7 +15,7 @@ public class SKInferenceWorkflow : IInferenceWorkflow
         this.config = config;
     }
 
-    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, CancellationToken cancellationToken)
+    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, Dictionary<string, Dictionary<string, string>>? stepsInputs, CancellationToken cancellationToken)
     {
         var sw = new Stopwatch();
         sw.Start();
@@ -30,7 +30,14 @@ public class SKInferenceWorkflow : IInferenceWorkflow
             }
 
             var step = inferenceWorkflowSteps.Single(x => x.GetType().Name == stepName);
-            context.StepsData.Add(new InferenceStepData(step.GetType().Name));
+            var data = new InferenceStepData(stepName);
+
+            if (stepsInputs is not null && stepsInputs.TryGetValue(stepName, out var inputs))
+            {
+                data.Inputs = inputs;
+            }
+
+            context.StepsData.Add(data);
 
             // todo: add step inputs
 

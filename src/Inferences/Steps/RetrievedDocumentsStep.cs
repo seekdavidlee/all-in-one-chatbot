@@ -1,4 +1,5 @@
-﻿namespace AIOChatbot.Inferences.Steps;
+﻿
+namespace AIOChatbot.Inferences.Steps;
 
 public class RetrievedDocumentsStep : IInferenceWorkflowStep
 {
@@ -28,10 +29,15 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
 
         var determineIntentStep = context.GetStepData(nameof(DetermineIntentStep));
         var results = await vectorDb.SearchAsync(determineIntentStep.GetOutputValue<string[]>(DetermineIntentStep.INTENTS_KEY), cancellationToken);
-        
+
         var docs = results.ToList();
         stepData.AddStepOutput(SEARCH_RESULTS_KEY, docs);
 
         return new InferenceWorkflowStepResult(true) { Documents = [.. docs] };
+    }
+
+    public Dictionary<string, string> CreateInputs()
+    {
+        return [];
     }
 }

@@ -15,7 +15,7 @@ public class InferenceWorkflowQueue : IInferenceWorkflow
     {
         this.config = config;
     }
-    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, CancellationToken cancellationToken)
+    public async Task<InferenceOutput> ExecuteAsync(string userInput, ChatHistory? chatHistory, Dictionary<string, Dictionary<string, string>>? stepsInputs, CancellationToken cancellationToken)
     {
         requestQueueClient ??= new QueueClient(config.AzureQueueConnectionString, config.InferenceQueueName);
         responseQueueClient ??= new QueueClient(config.AzureQueueConnectionString, config.InferenceResponseQueueName);

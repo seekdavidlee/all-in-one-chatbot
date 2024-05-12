@@ -88,4 +88,15 @@ public class DetermineReplyStep : IInferenceWorkflowStep
 
         return sb.ToString();
     }
+
+    public Dictionary<string, string> CreateInputs()
+    {
+        var dic = new Dictionary<string, string>
+        {
+            { nameof(OpenAIPromptExecutionSettings.MaxTokens), "800" },
+            { nameof(OpenAIPromptExecutionSettings.Temperature), "0" },
+            { nameof(OpenAIPromptExecutionSettings.TopP), "1" }
+        };
+        return dic;
+    }
 }

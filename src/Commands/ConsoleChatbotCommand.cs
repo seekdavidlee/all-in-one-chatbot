@@ -1,9 +1,7 @@
 ﻿using AIOChatbot.Configurations;
 using AIOChatbot.Inferences;
 using AIOChatbot.Llms;
-using AIOChatbot.VectorDbs;
 using Microsoft.Extensions.Configuration;
-using Microsoft.VisualStudio.TestPlatform.Utilities;
 using System.Diagnostics;
 using System.Text;
 
@@ -36,6 +34,7 @@ public class ConsoleChatbotCommand : ICommandAction
 
         var chatHistory = new ChatHistory { Chats = [] };
         List<InferenceOutput> outputs = [];
+        Dictionary<string, Dictionary<string, string>>? stepsInputs = [];
 
         while (true)
         {
@@ -62,16 +61,16 @@ public class ConsoleChatbotCommand : ICommandAction
 
             if (userInput.StartsWith("/"))
             {
-                ProcessCommand(userInput[1..], outputs);
+                ProcessCommand(userInput[1..], outputs, stepsInputs);
             }
             else
             {
-                await ProcessUserQueryAsync(userInput, inferenceWorkflow, chatHistory, outputs, cancellationToken);
+                await ProcessUserQueryAsync(userInput, inferenceWorkflow, chatHistory, outputs, stepsInputs, cancellationToken);
             }
         }
     }
 
-    private void ProcessCommand(string unparsedArgs, List<InferenceOutput> outputs)
+    private void ProcessCommand(string unparsedArgs, List<InferenceOutput> outputs, Dictionary<string, Dictionary<string, string>> stepsInputs)
     {
         var args = unparsedArgs.Split(' ');
         if (args.Length == 0)
@@ -90,6 +89,8 @@ public class ConsoleChatbotCommand : ICommandAction
             Console.WriteLine("/show-output [index] - show output at specific chat history index");
             Console.WriteLine("/show-output-docs [output index] [docs index] - show specific doc by index of an output");
             Console.WriteLine("/list-steps - list all inference workflow steps");
+            Console.WriteLine("/show-step-inputs [step name] - show inputs of a specific step");
+            Console.WriteLine("/set-step-inputs [step name] [input1 key]=[input1 value] [input2 key]=[input2 value] ... - set inputs of a specific step");
             return;
         }
 
@@ -117,12 +118,113 @@ public class ConsoleChatbotCommand : ICommandAction
             return;
         }
 
+        if (command == "show-step-inputs")
+        {
+            ShowStepInputs(args, stepsInputs);
+            return;
+        }
+
+        if (command == "set-step-inputs")
+        {
+            SetStepInputs(args, stepsInputs);
+            return;
+        }
+
         Console.WriteLine("Unknown command. Type '/help' to see available commands.");
+    }
+
+    private void ShowStepInputs(string[] args, Dictionary<string, Dictionary<string, string>> stepsInputs)
+    {
+        if (args.Length < 2)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Please provide an step name");
+            Console.ResetColor();
+            return;
+        }
+
+        var stepName = args[1];
+        var step = inferenceWorkflowSteps.SingleOrDefault(x => x.GetType().Name == stepName);
+        if (step is null)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Step {stepName} not found");
+            Console.ResetColor();
+            return;
+        }
+
+        if (!stepsInputs.TryGetValue(stepName, out Dictionary<string, string>? value))
+        {
+            value = step.CreateInputs();
+            stepsInputs[stepName] = value;
+        }
+
+        foreach (var input in value)
+        {
+            Console.WriteLine($"{input.Key}={input.Value}");
+        }
+    }
+
+    private void SetStepInputs(string[] args, Dictionary<string, Dictionary<string, string>> stepsInputs)
+    {
+        if (args.Length < 2)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Please provide an step name");
+            Console.ResetColor();
+            return;
+        }
+
+        if (args.Length < 3)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("Please provide an input keys and values in this format: [input1 key]=[input1 value]");
+            Console.ResetColor();
+            return;
+        }
+
+        var stepName = args[1];
+        var step = inferenceWorkflowSteps.SingleOrDefault(x => x.GetType().Name == stepName);
+        if (step is null)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"Step {stepName} not found");
+            Console.ResetColor();
+            return;
+        }
+
+        var dic = stepsInputs[stepName];
+
+        var inputs = step.CreateInputs();
+        foreach (var argRaw in args.Skip(2))
+        {
+            var argParts = argRaw.Split('=');
+            if (argParts.Length != 2)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"Invalid input format: {argRaw}");
+                Console.ResetColor();
+                continue;
+            }
+
+            string key = argParts[0];
+            if (!inputs.ContainsKey(key))
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"key: {key} is not valid");
+                Console.ResetColor();
+                continue;
+            }
+
+            string value = argParts[1];
+            dic[key] = value;
+            Console.WriteLine($"set {key}={value}");
+        }
     }
 
     private void ListSteps()
     {
-        foreach(var step in inferenceWorkflowSteps)
+        foreach (var step in inferenceWorkflowSteps)
         {
             Console.WriteLine(step.GetType().Name);
         }
@@ -245,13 +347,14 @@ public class ConsoleChatbotCommand : ICommandAction
         IInferenceWorkflow inferenceWorkflow,
         ChatHistory chatHistory,
         List<InferenceOutput> outputs,
+        Dictionary<string, Dictionary<string, string>>? stepsInputs,
         CancellationToken cancellationToken)
     {
         var chatEntry = new ChatEntry { User = userInput };
 
         Stopwatch sw = new();
         sw.Start();
-        var result = await inferenceWorkflow.ExecuteAsync(userInput, chatHistory, cancellationToken);
+        var result = await inferenceWorkflow.ExecuteAsync(userInput, chatHistory, stepsInputs, cancellationToken);
         sw.Stop();
         if (result.ErrorMessage is not null)
         {

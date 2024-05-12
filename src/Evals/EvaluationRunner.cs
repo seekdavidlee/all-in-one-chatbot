@@ -82,7 +82,7 @@ public class EvaluationRunner
         try
         {
             logger.LogDebug("running inference for '{question}', run: {count}", groundTruth.Question, index);
-            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, null, cancellationToken);
+            var answer = await inferenceWorkflow.ExecuteAsync(groundTruth.Question, null, null, cancellationToken);
             if (answer is null)
             {
                 return;

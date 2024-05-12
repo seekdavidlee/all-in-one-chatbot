@@ -101,7 +101,7 @@ public class HttpChatbotCommand : ICommandAction
                     chatHistory = null;
                 }
 
-                var res = await inferenceWorkflow.ExecuteAsync(req.Query, chatHistory, cancellationToken);
+                var res = await inferenceWorkflow.ExecuteAsync(req.Query, chatHistory, null, cancellationToken);
 
                 if (res.ErrorMessage is not null)
                 {
