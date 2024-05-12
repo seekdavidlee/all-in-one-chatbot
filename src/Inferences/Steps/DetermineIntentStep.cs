@@ -39,6 +39,11 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 
         var intents = GetIntents(result.ToString());
 
+        if (intents.Length == 0)
+        {
+            return new InferenceWorkflowStepResult(false, "no intents detected, please rephrase your question");
+        }
+
         stepData.AddStepOutput(INTENTS_KEY, intents);
 
         return new InferenceWorkflowStepResult(true) { Intents = intents };

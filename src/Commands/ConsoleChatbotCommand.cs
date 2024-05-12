@@ -12,11 +12,13 @@ namespace AIOChatbot.Commands;
 public class ConsoleChatbotCommand : ICommandAction
 {
     private readonly IEnumerable<IInferenceWorkflow> inferenceWorkflows;
+    private readonly IEnumerable<IInferenceWorkflowStep> inferenceWorkflowSteps;
     private readonly IConfig config;
 
-    public ConsoleChatbotCommand(IConfig config, IEnumerable<IInferenceWorkflow> inferenceWorkflows)
+    public ConsoleChatbotCommand(IConfig config, IEnumerable<IInferenceWorkflow> inferenceWorkflows, IEnumerable<IInferenceWorkflowStep> inferenceWorkflowSteps)
     {
         this.inferenceWorkflows = inferenceWorkflows;
+        this.inferenceWorkflowSteps = inferenceWorkflowSteps;
         this.config = config;
     }
 
@@ -48,6 +50,16 @@ public class ConsoleChatbotCommand : ICommandAction
                 break;
             }
 
+            if (userInput == "/clear-chat")
+            {
+                outputs.Clear();
+                chatHistory.Chats.Clear();
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Chat history cleared.");
+                Console.ResetColor();
+                continue;
+            }
+
             if (userInput.StartsWith("/"))
             {
                 ProcessCommand(userInput[1..], outputs);
@@ -74,8 +86,10 @@ public class ConsoleChatbotCommand : ICommandAction
             Console.WriteLine("Available commands:");
             Console.WriteLine("/help - show this help message");
             Console.WriteLine("/clear - clear console");
+            Console.WriteLine("/clear-chat - clear chat history");
             Console.WriteLine("/show-output [index] - show output at specific chat history index");
             Console.WriteLine("/show-output-docs [output index] [docs index] - show specific doc by index of an output");
+            Console.WriteLine("/list-steps - list all inference workflow steps");
             return;
         }
 
@@ -97,7 +111,21 @@ public class ConsoleChatbotCommand : ICommandAction
             return;
         }
 
+        if (command == "list-steps")
+        {
+            ListSteps();
+            return;
+        }
+
         Console.WriteLine("Unknown command. Type '/help' to see available commands.");
+    }
+
+    private void ListSteps()
+    {
+        foreach(var step in inferenceWorkflowSteps)
+        {
+            Console.WriteLine(step.GetType().Name);
+        }
     }
 
     private void ProcessShowOutputDocCommand(string[] args, List<InferenceOutput> outputs)
