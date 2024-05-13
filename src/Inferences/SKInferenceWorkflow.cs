@@ -39,8 +39,6 @@ public class SKInferenceWorkflow : IInferenceWorkflow
 
             context.StepsData.Add(data);
 
-            // todo: add step inputs
-
             var stepResult = await step.ExecuteAsync(context, cancellationToken);
             if (!stepResult.Success)
             {

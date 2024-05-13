@@ -68,7 +68,7 @@ public class AzureOpenAIEmbedding : IEmbedding
         }
     }
 
-    public async Task<List<float[]>> GetEmbeddingsAsync(string[] textList, CancellationToken cancellationToken)
+    public async Task<EmbeddingResult> GetEmbeddingsAsync(string[] textList, CancellationToken cancellationToken)
     {
         int retry = 0;
         while (true)
@@ -88,7 +88,12 @@ public class AzureOpenAIEmbedding : IEmbedding
                     response.Value.Usage.TotalTokens / sw.Elapsed.TotalSeconds, sw.ElapsedMilliseconds, textList.Length, DeploymentName);
 
                 this.ingestionReporter.IncrementEmbeddingTokensProcessed(response.Value.Usage.TotalTokens);
-                return response.Value.Data.Select(x => x.Embedding.ToArray()).ToList();
+                return new EmbeddingResult
+                {
+                    TotalTokens = response.Value.Usage.TotalTokens,
+                    DurationInMilliseconds = sw.ElapsedMilliseconds,
+                    Vectors = response.Value.Data.Select(x => x.Embedding.ToArray()).ToList()
+                };
             }
             catch (RequestFailedException ex)
             {

@@ -23,10 +23,12 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
         return vectorDb;
     }
 
+    const int DefaultNumberOfResults = 5;
+
     public async Task<InferenceWorkflowStepResult> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
     {
         var stepData = context.GetStepData(nameof(RetrievedDocumentsStep));
-        var numberOfResult = stepData.TryGetInputValue(nameof(SearchParameters.NumberOfResults), 5);
+        var numberOfResult = stepData.TryGetInputValue(nameof(SearchParameters.NumberOfResults), DefaultNumberOfResults);
         var vectorDb = GetSelectedVectorDb();
 
         var determineIntentStep = context.GetStepData(nameof(DetermineIntentStep));
@@ -44,7 +46,7 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
     {
         var dic = new Dictionary<string, string>
         {
-            { nameof(SearchParameters.NumberOfResults), "5" },
+            { nameof(SearchParameters.NumberOfResults), DefaultNumberOfResults.ToString() },
         };
         return dic;
     }

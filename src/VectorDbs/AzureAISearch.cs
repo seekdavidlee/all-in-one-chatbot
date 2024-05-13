@@ -103,7 +103,7 @@ public class AzureAISearch : IVectorDb
         var embeddings = (await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken));
 
         var vectorSearchOptions = new VectorSearchOptions();
-        foreach (var embed in embeddings)
+        foreach (var embed in embeddings.Vectors)
         {
             var query = new VectorizedQuery(embed);
             query.Fields.Add("contentVector");

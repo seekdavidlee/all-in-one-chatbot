@@ -29,11 +29,20 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 
         if (cancellationToken.IsCancellationRequested)
         {
-            return new InferenceWorkflowStepResult(false, "user cancelled");
+            return new InferenceWorkflowStepResult(false, "operation cancelled");
         }
 
+        if (result is null)
+        {
+            return new InferenceWorkflowStepResult(false, "no response from llm");
+        }
+
+        int promptTokens = 0;
+        int completionTokens = 0;
         if (result.Metadata is not null && result.Metadata.TryGetValue(USAGE_KEY, out object? o) && o is CompletionsUsage usage)
         {
+            promptTokens = usage.PromptTokens;
+            completionTokens = usage.CompletionTokens;
             stepData.AddStepOutput(USAGE_KEY, usage);
         }
 
@@ -46,7 +55,12 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 
         stepData.AddStepOutput(INTENTS_KEY, intents);
 
-        return new InferenceWorkflowStepResult(true) { Intents = intents };
+        return new InferenceWorkflowStepResult(true)
+        {
+            Intents = intents,
+            TotalPromptTokens = promptTokens,
+            TotalCompletionTokens = completionTokens
+        };
     }
 
     public const string USAGE_KEY = "Usage";

@@ -38,7 +38,15 @@ public class DetermineReplyStep : IInferenceWorkflowStep
         };
 
         string determineReplyPrompt = await Util.GetResourceAsync("DetermineReply.txt");
+
+        int promptTokens = 0;
+        int completionTokens = 0;
         var result = await kernel.InvokePromptAsync(determineReplyPrompt, args, cancellationToken: cancellationToken);
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new InferenceWorkflowStepResult(false, "operation cancelled");
+        }
 
         if (result is null)
         {
@@ -49,10 +57,16 @@ public class DetermineReplyStep : IInferenceWorkflowStep
 
         if (result.Metadata is not null && result.Metadata.TryGetValue(USAGE_KEY, out var usageOut) && usageOut is CompletionsUsage usage)
         {
+            promptTokens = usage.PromptTokens;
+            completionTokens = usage.CompletionTokens;
             stepData.AddStepOutput(USAGE_KEY, usage);
         }
 
-        return new InferenceWorkflowStepResult(true);
+        return new InferenceWorkflowStepResult(true)
+        {
+            TotalCompletionTokens = completionTokens,
+            TotalPromptTokens = promptTokens
+        };
     }
 
     private static string GetConversationHistory(ChatHistory chatHistory)

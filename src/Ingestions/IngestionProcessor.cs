@@ -33,12 +33,12 @@ public class IngestionProcessor : IIngestionProcessor
         {
             this.ingestionReporter.IncrementSearchModelsProcessing(searchModels.Count);
             this.ingestionReporter.IncrementEmbeddingHttpRequest();
-            var floatsList = await embedding.GetEmbeddingsAsync(searchModels.Select(
+            var embeddingResult = await embedding.GetEmbeddingsAsync(searchModels.Select(
                 x => x.ContentToVectorized ?? throw new Exception("ContentToVectorized is null")).ToArray(), cancellationToken);
 
             for (var i = 0; i < searchModels.Count; i++)
             {
-                searchModels[i].ContentVector = floatsList[i];
+                searchModels[i].ContentVector = embeddingResult.Vectors[i];
             }
 
             var (successCount, errorCount) = await vectorDb.ProcessAsync(searchModels, collectionName: collectionName, cancellationToken: cancellationToken);
