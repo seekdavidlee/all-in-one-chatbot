@@ -15,10 +15,7 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
     private IVectorDb? vectorDb;
     public IVectorDb GetSelectedVectorDb()
     {
-        if (vectorDb is null)
-        {
-            vectorDb = vectorDbs.GetSelectedVectorDb();
-        }
+        vectorDb ??= vectorDbs.GetSelectedVectorDb();
 
         return vectorDb;
     }
@@ -36,10 +33,13 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
             new SearchParameters { NumberOfResults = numberOfResult },
             cancellationToken);
 
-        var docs = results.ToList();
-        stepData.AddStepOutput(SEARCH_RESULTS_KEY, docs);
+        stepData.AddStepOutput(SEARCH_RESULTS_KEY, results.Documents);
 
-        return new InferenceWorkflowStepResult(true) { Documents = [.. docs] };
+        return new InferenceWorkflowStepResult(true)
+        {
+            Documents = [.. results.Documents],
+            TotalEmbeddingTokens = results.TotalTokens
+        };
     }
 
     public Dictionary<string, string> CreateInputs()

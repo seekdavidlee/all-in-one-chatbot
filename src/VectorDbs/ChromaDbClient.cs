@@ -94,7 +94,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
         return collectionClient.DeleteAsync([config.CollectionName]);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
+    public async Task<IndexedDocumentResults> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
     {
         if (collectionClient is null)
         {
@@ -105,7 +105,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
         var results = await collectionClient.QueryAsync(queryEmbeddings: embeddingResult.Vectors, numberOfResults: searchParameters.NumberOfResults);
         if (results is null || results.Ids is null || results.Distances is null)
         {
-            return [];
+            return new IndexedDocumentResults { Documents = [] };
         }
 
         var docs = new List<IndexedDocument>();
@@ -137,6 +137,10 @@ public class ChromaDbClient : IVectorDb, IDisposable
             }
         }
 
-        return docs.Where(x => x.Score >= minimumScore).OrderByDescending(x => x.Score);
+        // todo: add tokencount
+        return new IndexedDocumentResults
+        {
+            Documents = [.. docs.Where(x => x.Score >= minimumScore).OrderByDescending(x => x.Score)]
+        };
     }
 }

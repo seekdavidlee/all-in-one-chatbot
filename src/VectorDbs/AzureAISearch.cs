@@ -97,7 +97,7 @@ public class AzureAISearch : IVectorDb
         return (success, error);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
+    public async Task<IndexedDocumentResults> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
     {
         var embedding = embeddingList.GetSelectedEmbedding(config);
         var embeddings = (await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken));
@@ -140,6 +140,10 @@ public class AzureAISearch : IVectorDb
             });
         }
 
-        return indexedDocuments.OrderByDescending(x => x.Score);
+        return new IndexedDocumentResults
+        {
+            TotalTokens = embeddings.TotalTokens,
+            Documents = [.. indexedDocuments.OrderByDescending(x => x.Score)],
+        };
     }
 }

@@ -59,7 +59,7 @@ public class ConsoleChatbotCommand : ICommandAction
                 continue;
             }
 
-            if (userInput.StartsWith("/"))
+            if (userInput.StartsWith('/'))
             {
                 ProcessCommand(userInput[1..], outputs, stepsInputs);
             }
@@ -230,7 +230,7 @@ public class ConsoleChatbotCommand : ICommandAction
         }
     }
 
-    private void ProcessShowOutputDocCommand(string[] args, List<InferenceOutput> outputs)
+    private static void ProcessShowOutputDocCommand(string[] args, List<InferenceOutput> outputs)
     {
         if (args.Length < 2)
         {
@@ -342,7 +342,7 @@ public class ConsoleChatbotCommand : ICommandAction
         return sb.ToString();
     }
 
-    private async Task ProcessUserQueryAsync(
+    private static async Task ProcessUserQueryAsync(
         string userInput,
         IInferenceWorkflow inferenceWorkflow,
         ChatHistory chatHistory,
