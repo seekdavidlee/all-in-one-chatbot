@@ -97,7 +97,7 @@ public class AzureAISearch : IVectorDb
         return (success, error);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, CancellationToken cancellationToken)
+    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
     {
         var embedding = embeddingList.GetSelectedEmbedding(config);
         var embeddings = (await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken));
@@ -107,13 +107,13 @@ public class AzureAISearch : IVectorDb
         {
             var query = new VectorizedQuery(embed);
             query.Fields.Add("contentVector");
-            query.KNearestNeighborsCount = 5;
+            query.KNearestNeighborsCount = searchParameters.NumberOfResults;
             vectorSearchOptions.Queries.Add(query);
         }
 
         var searchOptions = new SearchOptions
         {
-            VectorSearch = vectorSearchOptions
+            VectorSearch = vectorSearchOptions,
         };
 
         var results = await GetSearchClient(config.CollectionName).SearchAsync<SearchModel>(searchOptions, cancellationToken);

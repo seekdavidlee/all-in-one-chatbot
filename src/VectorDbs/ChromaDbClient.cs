@@ -94,7 +94,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
         return collectionClient.DeleteAsync([config.CollectionName]);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, CancellationToken cancellationToken)
+    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
     {
         if (collectionClient is null)
         {
@@ -102,7 +102,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
         }
         var embedding = embeddingList.GetSelectedEmbedding(config);
         var embeddings = await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken);
-        var results = await collectionClient.QueryAsync(queryEmbeddings: embeddings, numberOfResults: 5);
+        var results = await collectionClient.QueryAsync(queryEmbeddings: embeddings, numberOfResults: searchParameters.NumberOfResults);
         if (results is null || results.Ids is null || results.Distances is null)
         {
             return [];
