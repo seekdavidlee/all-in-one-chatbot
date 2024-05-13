@@ -126,9 +126,12 @@ public class AzureAISearch : IVectorDb
                 continue;
             }
 
+
             indexedDocuments.Add(new IndexedDocument
             {
                 Score = (float)result.Score,
+                Source = result.Document.Filepath ?? result.Document.Url ?? "none",
+                Title = result.Document.Title,
                 Id = result.Document.Id,
                 MetaDatas = result.Document.MetaData is not null ?
                     JsonSerializer.Deserialize<IDictionary<string, string>>(result.Document.MetaData) :

@@ -2,6 +2,7 @@
 using AIOChatbot.Inferences;
 using AIOChatbot.Llms;
 using AIOChatbot.Models;
+using DocumentFormat.OpenXml.Bibliography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -82,48 +83,91 @@ public class HttpChatbotCommand : ICommandAction
         IInferenceWorkflow inferenceWorkflow,
         CancellationToken cancellationToken)
     {
-        using (var reader = new StreamReader(request.InputStream, request.ContentEncoding))
+        using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
+        var json = await reader.ReadToEndAsync(cancellationToken);
+        var req = JsonSerializer.Deserialize<ChatbotHttpRequest>(json);
+        if (req is not null && req.Query is not null)
         {
-            var json = await reader.ReadToEndAsync(cancellationToken);
-            var req = JsonSerializer.Deserialize<ChatbotHttpRequest>(json);
-            if (req is not null && req.Query is not null)
+            ChatHistory? chatHistory;
+            if (req.ChatHistory is not null)
             {
-                ChatHistory? chatHistory;
-                if (req.ChatHistory is not null)
+                chatHistory = new ChatHistory
                 {
-                    chatHistory = new ChatHistory
-                    {
-                        Chats = req.ChatHistory
-                    };
-                }
-                else
-                {
-                    chatHistory = null;
-                }
-
-                var res = await inferenceWorkflow.ExecuteAsync(req.Query, chatHistory, null, cancellationToken);
-
-                if (res.ErrorMessage is not null)
-                {
-                    CreateResponse(response, new ChatbotHttpErrorResponse
-                    {
-                        Message = res.ErrorMessage,
-                        InferenceDurationInMilliseconds = res.DurationInMilliseconds
-                    });
-                }
-                else
-                {
-                    CreateResponse(response, new ChatbotHttpResponse
-                    {
-                        Bot = res.Text,
-                        InferenceDurationInMilliseconds = res.DurationInMilliseconds
-                    });
-                }
+                    Chats = req.ChatHistory
+                };
             }
             else
             {
-                CreateResponse(response, new ChatbotHttpErrorResponse { Message = "http request body is not valid" });
+                chatHistory = null;
             }
+
+            var res = await inferenceWorkflow.ExecuteAsync(req.Query, chatHistory, null, cancellationToken);
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            if (res.ErrorMessage is not null)
+            {
+                CreateResponse(response, new ChatbotHttpErrorResponse
+                {
+                    Message = res.ErrorMessage,
+                    InferenceDurationInMilliseconds = res.DurationInMilliseconds
+                });
+            }
+            else
+            {
+                if (res.Text is null)
+                {
+                    CreateResponse(response, new ChatbotHttpErrorResponse
+                    {
+                        Message = "no response from bot",
+                        InferenceDurationInMilliseconds = res.DurationInMilliseconds
+                    });
+                    return;
+                }
+
+                var documents = new List<ChatbotDocumentHttpResponse>();
+                if (res.Documents is not null)
+                {
+                    for (int i = 0; i < res.Documents.Length; i++)
+                    {
+                        string id = $"[doc{i}]";
+                        if (res.Text.Contains(id))
+                        {
+                            var text = res.Documents[i].Text;
+                            if (text is null)
+                            {
+                                continue;
+                            }
+
+                            documents.Add(new ChatbotDocumentHttpResponse
+                            {
+                                Id = id,
+                                Content = text,
+                                Title = res.Documents[i].Title,
+                                Source = res.Documents[i].Source
+                            });
+                        }
+                    }
+                }
+
+                CreateResponse(response, new ChatbotHttpResponse
+                {
+                    Bot = res.Text,
+                    Intents = res.Intents,
+                    InferenceDurationInMilliseconds = res.DurationInMilliseconds,
+                    TotalCompletionTokens = res.TotalCompletionTokens,
+                    TotalPromptTokens = res.TotalPromptTokens,
+                    TotalEmbeddingTokens = res.TotalEmbeddingTokens,
+                    Documents = documents
+                });
+            }
+        }
+        else
+        {
+            CreateResponse(response, new ChatbotHttpErrorResponse { Message = "http request body is not valid" });
         }
     }
 
@@ -142,6 +186,7 @@ public class HttpChatbotCommand : ICommandAction
         response.StatusCode = status;
         var buffer = System.Text.Encoding.UTF8.GetBytes(message);
         response.ContentLength64 = buffer.Length;
+        response.ContentType = "application/json";
         var output = response.OutputStream;
         output.Write(buffer, 0, buffer.Length);
     }
