@@ -2,6 +2,7 @@
 
 public interface IConfig
 {
+    bool DisableInferenceInputs { get; }
     string ChatbotHttpEndpoint { get; }
     string AzureOpenAILLMDeploymentModel { get; }
     string AzureOpenAIEndpoint { get; }

@@ -14,26 +14,47 @@ public class FileCache
         this.config = config;
     }
 
-    public async Task<string> GetFileContentAsync(string filePath, CancellationToken cancellationToken)
+    public const string PromptsResourcePrefix = "prompts_resource:";
+
+    public async Task<string> GetFileContentAsync(string filePath, CancellationToken cancellationToken, bool useCache = true)
     {
-        if (fileContents.TryGetValue(filePath, out var content))
+        if (useCache && fileContents.TryGetValue(filePath, out var content))
         {
             return content;
+        }
+
+        if (filePath.StartsWith(PromptsResourcePrefix))
+        {
+            var promptResourceContent = await Util.GetResourceAsync(filePath[PromptsResourcePrefix.Length..]);
+            if (useCache)
+            {
+                fileContents.TryAdd(filePath, promptResourceContent);
+            }
+            return promptResourceContent;
         }
 
         if (filePath.StartsWith("blob:"))
         {
             var length = "blob:".Length;
-            var split = filePath.Substring(length).Split('/');
+            var split = filePath[length..].Split('/');
 
-            var path = filePath.Substring(length + split[0].Length);
+            var path = filePath[(length + split[0].Length)..];
             var blob = new BlobClient(config.AzureStorageConnectionString, split[0], path);
             var response = await blob.DownloadContentAsync(cancellationToken);
-            return response.Value.Content.ToString();
+
+            var blobContent = response.Value.Content.ToString();
+            if (useCache)
+            {
+                fileContents.TryAdd(filePath, blobContent);
+            }
+            return blobContent;
         }
 
         var fileContent = await File.ReadAllTextAsync(filePath, cancellationToken);
-        fileContents.TryAdd(filePath, fileContent);
+        if (useCache)
+        {
+            fileContents.TryAdd(filePath, fileContent);
+        }
         return fileContent;
     }
 }

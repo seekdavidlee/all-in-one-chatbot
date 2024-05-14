@@ -44,7 +44,7 @@ public class SKInferenceWorkflow : IInferenceWorkflow
             var step = inferenceWorkflowSteps.Single(x => x.GetType().Name == stepName);
             var data = new InferenceStepData(stepName);
 
-            if (stepsInputs is not null && stepsInputs.TryGetValue(stepName, out var inputs))
+            if (!config.DisableInferenceInputs && stepsInputs is not null && stepsInputs.TryGetValue(stepName, out var inputs))
             {
                 data.Inputs = inputs;
                 logger.LogDebug("executing step: {stepName} with inputs", stepName);
