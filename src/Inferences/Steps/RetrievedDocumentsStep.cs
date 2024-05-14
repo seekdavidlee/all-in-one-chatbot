@@ -35,6 +35,11 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
             new SearchParameters { NumberOfResults = numberOfResult, MinScore = minScore },
             cancellationToken);
 
+        if (cancellationToken.IsCancellationRequested)
+        {
+            return new InferenceWorkflowStepResult(false, "operation cancelled");
+        }
+
         stepData.AddStepOutput(SEARCH_RESULTS_KEY, results.Documents);
 
         return new InferenceWorkflowStepResult(true)

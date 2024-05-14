@@ -58,6 +58,12 @@ public class SKInferenceWorkflow : IInferenceWorkflow
             try
             {
                 stepResult = await step.ExecuteAsync(context, cancellationToken);
+
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    logger.LogDebug("step: {stepName} is cancelled", stepName);
+                    break;
+                }
             }
             catch (Exception ex)
             {

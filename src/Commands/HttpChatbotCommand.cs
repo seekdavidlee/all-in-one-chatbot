@@ -2,7 +2,6 @@
 using AIOChatbot.Inferences;
 using AIOChatbot.Llms;
 using AIOChatbot.Models;
-using DocumentFormat.OpenXml.Bibliography;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Net;
@@ -162,7 +161,8 @@ public class HttpChatbotCommand : ICommandAction
                     TotalPromptTokens = res.TotalPromptTokens,
                     TotalEmbeddingTokens = res.TotalEmbeddingTokens,
                     Documents = documents,
-                    StepOutputs = res.Steps?.ToDictionary(step => step.Name ?? throw new Exception("step name is null"), step => step.Outputs)
+                    StepOutputs = req.EnableDiagnosticLog == true ?
+                        res.Steps?.ToDictionary(step => step.Name ?? throw new Exception("step name is null"), step => step.Outputs) : null
                 });
             }
         }
