@@ -51,7 +51,10 @@ public class Config : IConfig
         this.InferenceResponseQueueName = this.config.Get<string>("InferenceResponseQueueName");
         this.InferenceProcessorType = this.config.Get<string>("InferenceProcessorType");
         this.MessageDequeueCount = this.config.Get<int>("MessageDequeueCount", v => v is null ? 5 : int.Parse(v));
+        this.DisableInferenceInputs = this.config.Get<bool>("DisableInferenceInputs", v => v is null ? true : bool.Parse(v));
     }
+
+    public bool DisableInferenceInputs { get; }
     public string ChatbotHttpEndpoint { get; }
     public string AzureOpenAIEndpoint { get; }
     public string AzureOpenAIEmbeddings { get; }
@@ -119,5 +122,6 @@ public class Config : IConfig
         this.config.Optional("InferenceResponseQueueName", this.InferenceResponseQueueName, hideValue: false);
         this.config.Optional("InferenceProcessorType", this.InferenceProcessorType, hideValue: false);
         this.config.Optional("MessageDequeueCount", this.MessageDequeueCount, hideValue: false);
+        this.config.Optional("DisableInferenceInputs", this.DisableInferenceInputs, hideValue: false);
     }
 }

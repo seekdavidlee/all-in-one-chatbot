@@ -34,6 +34,26 @@ public class InferenceStepData
         return defaultValue;
     }
 
+    public string TryGetStringInputValue(string key, string defaultValue)
+    {
+        if (Inputs.TryGetValue(key, out string? value) && value is not null)
+        {
+            return value;
+        }
+
+        return defaultValue;
+    }
+
+    public bool TryGetBoolInputValue(string key, bool defaultValue)
+    {
+        if (Inputs.TryGetValue(key, out string? value) && bool.TryParse(value, out bool result))
+        {
+            return result;
+        }
+
+        return defaultValue;
+    }
+
     public T GetOutputValue<T>(string key)
     {
         if (Outputs.TryGetValue(key, out object? value))

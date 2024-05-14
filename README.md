@@ -51,6 +51,25 @@ This is the core part of a Chatbot which you can send a question and maybe a cha
 
 * IInferenceWorkflow - runs inference locally or persist to a queue and let another replica process the request
 
+#### Inference HTTP Web Server
+
+You can enable a http server for inference by setting command as `httpchatbot`.
+
+This is an example of a query which will return up to 10 search results that have scores greater than or equals to 0.5. The `EnableDiagnosticLog` enables a detailed information suh as metrics of each step to be returned. For `StepsInput` to be utilized, set environment variable `DisableInferenceInputs` to `false`, otherwise, you will get a HTTP status of `403`.
+
+```json
+{
+    "Query": "How do I enable the firewall?",
+    "EnableDiagnosticLog": true,
+    "StepsInputs": {      
+        "RetrievedDocumentsStep": {
+            "NumberOfResults": "10",
+            "MinScore": "0.5"
+        }
+    }
+}
+```
+
 ### Evaluation
 
 For a Retrieval Augmented Generation (RAG) based Chatbot solution, we need to ensure the response from the solution matches with our expectations given the responses are not guaranteed to be deterministic. This means doing experiments on your Ingestion and Inference components to figure out what inference prompts we need to refine, maybe playing around with temperature settings etc. This is why we have ground truths with questions and expected responses and have the experiment to validates with our specific metrics. A score and a reason for the score will help us through this proess.

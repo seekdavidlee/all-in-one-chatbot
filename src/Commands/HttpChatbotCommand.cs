@@ -55,15 +55,16 @@ public class HttpChatbotCommand : ICommandAction
             {
                 if (request.HttpMethod == AcceptedHttpMethod)
                 {
-                    await ProcessRequestAsync(request, response, inferenceWorkflow, cancellationToken);
+                    await ProcessRequestAsync(config, request, response, inferenceWorkflow, cancellationToken);
                 }
                 else
                 {
                     CreateResponse(response, new ChatbotHttpErrorResponse { Message = $"http method is invalid, needs to be: {AcceptedHttpMethod}" });
                 }
             }
-            catch (JsonException)
+            catch (JsonException jEx)
             {
+                logger.LogError(jEx, "http request body is not valid");
                 CreateResponse(response, new ChatbotHttpErrorResponse { Message = "http request body is not valid" });
             }
             finally
@@ -77,6 +78,7 @@ public class HttpChatbotCommand : ICommandAction
     }
 
     private static async Task ProcessRequestAsync(
+        IConfig config,
         HttpListenerRequest request,
         HttpListenerResponse response,
         IInferenceWorkflow inferenceWorkflow,
@@ -87,6 +89,15 @@ public class HttpChatbotCommand : ICommandAction
         var req = JsonSerializer.Deserialize<ChatbotHttpRequest>(json);
         if (req is not null && req.Query is not null)
         {
+            if (config.DisableInferenceInputs && req.StepsInputs?.Count > 0)
+            {
+                CreateResponse(response, new ChatbotHttpErrorResponse
+                {
+                    Message = "StepsInputs is not allowed"
+                }, 403);
+                return;
+            }
+
             ChatHistory? chatHistory;
             if (req.ChatHistory is not null)
             {

@@ -1,11 +1,16 @@
 ﻿using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel;
 using Azure.AI.OpenAI;
+using AIOChatbot.Evals;
 
 namespace AIOChatbot.Inferences.Steps;
 
-public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
+public class DetermineIntentStep(Kernel kernel, FileCache fileCache) : IInferenceWorkflowStep
 {
+    const string promptFileUseCacheKey = "PromptFileUseCache";
+    const string promptFileKey = "PromptFileSource";
+    const string resourceFile = $"{FileCache.PromptsResourcePrefix}DetermineIntent.txt";
+
     public async Task<InferenceWorkflowStepResult> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
     {
         var stepData = context.GetStepData(nameof(DetermineIntentStep));
@@ -14,18 +19,20 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
         {
             MaxTokens = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.MaxTokens), 800),
             Temperature = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.Temperature), 0),
-            TopP = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.TopP), 1)
+            TopP = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.TopP), 1),
         };
-
-        string determineIntentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");
 
         var args = new KernelArguments(executionSettings)
         {
             { "previous_intent", GetPreviousIntent(context) },
             { "query", context.UserInput }
         };
+        
+        bool useCache = stepData.TryGetBoolInputValue(promptFileUseCacheKey, true);
+        string prompt = await fileCache.GetFileContentAsync(
+            stepData.TryGetStringInputValue(promptFileKey, resourceFile), cancellationToken, useCache);
 
-        var result = await kernel.InvokePromptAsync(determineIntentPrompt, args, cancellationToken: cancellationToken);
+        var result = await kernel.InvokePromptAsync(prompt, args, cancellationToken: cancellationToken);
 
         if (cancellationToken.IsCancellationRequested)
         {
@@ -65,6 +72,7 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 
     public const string USAGE_KEY = "Usage";
     public const string INTENTS_KEY = "Intents";
+    private readonly FileCache fileCache = fileCache;
 
     private static string GetPreviousIntent(InferenceWorkflowContext context)
     {
@@ -133,7 +141,9 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
         {
             { nameof(OpenAIPromptExecutionSettings.MaxTokens), "800" },
             { nameof(OpenAIPromptExecutionSettings.Temperature), "0" },
-            { nameof(OpenAIPromptExecutionSettings.TopP), "1" }
+            { nameof(OpenAIPromptExecutionSettings.TopP), "1" },
+            { promptFileKey, resourceFile },
+            { promptFileUseCacheKey, "true" }
         };
         return dic;
     }

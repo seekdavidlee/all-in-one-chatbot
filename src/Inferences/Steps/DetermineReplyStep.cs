@@ -1,4 +1,5 @@
-﻿using AIOChatbot.Llms;
+﻿using AIOChatbot.Evals;
+using AIOChatbot.Llms;
 using AIOChatbot.VectorDbs;
 using Azure.AI.OpenAI;
 using Microsoft.Extensions.Logging;
@@ -8,16 +9,14 @@ using System.Text;
 
 namespace AIOChatbot.Inferences.Steps;
 
-public class DetermineReplyStep : IInferenceWorkflowStep
+public class DetermineReplyStep(Kernel kernel, FileCache fileCache, ILogger<DetermineReplyStep> logger) : IInferenceWorkflowStep
 {
-    private readonly Kernel kernel;
-    private readonly ILogger<DetermineReplyStep> logger;
+    private readonly Kernel kernel = kernel;
+    private readonly ILogger<DetermineReplyStep> logger = logger;
+    const string promptFileUseCacheKey = "PromptFileUseCache";
+    const string promptFileKey = "PromptFileSource";
+    const string resourceFile = $"{FileCache.PromptsResourcePrefix}DetermineReply.txt";
 
-    public DetermineReplyStep(Kernel kernel, ILogger<DetermineReplyStep> logger)
-    {
-        this.kernel = kernel;
-        this.logger = logger;
-    }
     public async Task<InferenceWorkflowStepResult> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
     {
         var stepData = context.GetStepData(nameof(DetermineReplyStep));
@@ -37,11 +36,13 @@ public class DetermineReplyStep : IInferenceWorkflowStep
             { "user_query", context.UserInput }
         };
 
-        string determineReplyPrompt = await Util.GetResourceAsync("DetermineReply.txt");
-
         int promptTokens = 0;
         int completionTokens = 0;
-        var result = await kernel.InvokePromptAsync(determineReplyPrompt, args, cancellationToken: cancellationToken);
+
+        bool useCache = stepData.TryGetBoolInputValue(promptFileUseCacheKey, true);
+        string prompt = await fileCache.GetFileContentAsync(
+            stepData.TryGetStringInputValue(promptFileKey, resourceFile), cancellationToken, useCache);
+        var result = await kernel.InvokePromptAsync(prompt, args, cancellationToken: cancellationToken);
 
         if (cancellationToken.IsCancellationRequested)
         {
@@ -109,7 +110,9 @@ public class DetermineReplyStep : IInferenceWorkflowStep
         {
             { nameof(OpenAIPromptExecutionSettings.MaxTokens), "800" },
             { nameof(OpenAIPromptExecutionSettings.Temperature), "0" },
-            { nameof(OpenAIPromptExecutionSettings.TopP), "1" }
+            { nameof(OpenAIPromptExecutionSettings.TopP), "1" },
+            { promptFileKey, resourceFile },
+            { promptFileUseCacheKey, "true" }
         };
         return dic;
     }
