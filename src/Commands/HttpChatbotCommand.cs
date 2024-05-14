@@ -114,7 +114,7 @@ public class HttpChatbotCommand : ICommandAction
                 {
                     Message = res.ErrorMessage,
                     InferenceDurationInMilliseconds = res.DurationInMilliseconds
-                });
+                }, res.IsInternalError == true ? 500 : 400);
             }
             else
             {
@@ -172,9 +172,9 @@ public class HttpChatbotCommand : ICommandAction
         }
     }
 
-    private static void CreateResponse(HttpListenerResponse response, ChatbotHttpErrorResponse chatbotHttpErrorResponse)
+    private static void CreateResponse(HttpListenerResponse response, ChatbotHttpErrorResponse chatbotHttpErrorResponse, int status = 400)
     {
-        CreateResponse(response, 400, JsonSerializer.Serialize(chatbotHttpErrorResponse));
+        CreateResponse(response, status, JsonSerializer.Serialize(chatbotHttpErrorResponse));
     }
 
     private static void CreateResponse(HttpListenerResponse response, ChatbotHttpResponse chatbotHttpResponse)

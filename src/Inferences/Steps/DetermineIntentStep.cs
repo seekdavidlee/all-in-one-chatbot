@@ -64,7 +64,7 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
     }
 
     public const string USAGE_KEY = "Usage";
-    public const string INTENTS_KEY = "intents";
+    public const string INTENTS_KEY = "Intents";
 
     private static string GetPreviousIntent(InferenceWorkflowContext context)
     {

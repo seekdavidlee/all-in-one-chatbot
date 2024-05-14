@@ -11,6 +11,8 @@ public class InferenceOutput
     /// </summary>
     public string? ErrorMessage { get; set; }
 
+    public bool? IsInternalError { get; set; }
+
     /// <summary>
     /// Gets or sets the step where the error occurred.
     /// </summary>
