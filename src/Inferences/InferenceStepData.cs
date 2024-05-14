@@ -14,9 +14,19 @@ public class InferenceStepData
     public Dictionary<string, string> Inputs { get; set; }
     public Dictionary<string, object> Outputs { get; set; }
 
-    public int TryGetInputValue(string key, int defaultValue)
+    public int TryGetIntInputValue(string key, int defaultValue)
     {
         if (Inputs.TryGetValue(key, out string? value) && int.TryParse(value, out int result))
+        {
+            return result;
+        }
+
+        return defaultValue;
+    }
+
+    public double TryGetDoubleInputValue(string key, double defaultValue)
+    {
+        if (Inputs.TryGetValue(key, out string? value) && double.TryParse(value, out double result))
         {
             return result;
         }

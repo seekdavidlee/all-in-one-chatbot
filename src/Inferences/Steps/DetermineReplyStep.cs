@@ -23,9 +23,9 @@ public class DetermineReplyStep : IInferenceWorkflowStep
         var stepData = context.GetStepData(nameof(DetermineReplyStep));
         var executionSettings = new OpenAIPromptExecutionSettings
         {
-            MaxTokens = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.MaxTokens), 800),
-            Temperature = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.Temperature), 0),
-            TopP = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.TopP), 1)
+            MaxTokens = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.MaxTokens), 800),
+            Temperature = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.Temperature), 0),
+            TopP = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.TopP), 1)
         };
 
         var retrievedDocumentsStep = context.GetStepData(nameof(RetrievedDocumentsStep));

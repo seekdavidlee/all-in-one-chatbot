@@ -12,9 +12,9 @@ public class DetermineIntentStep(Kernel kernel) : IInferenceWorkflowStep
 
         var executionSettings = new OpenAIPromptExecutionSettings
         {
-            MaxTokens = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.MaxTokens), 800),
-            Temperature = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.Temperature), 0),
-            TopP = stepData.TryGetInputValue(nameof(OpenAIPromptExecutionSettings.TopP), 1)
+            MaxTokens = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.MaxTokens), 800),
+            Temperature = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.Temperature), 0),
+            TopP = stepData.TryGetIntInputValue(nameof(OpenAIPromptExecutionSettings.TopP), 1)
         };
 
         string determineIntentPrompt = await Util.GetResourceAsync("DetermineIntent.txt");

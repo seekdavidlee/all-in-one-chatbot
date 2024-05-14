@@ -101,7 +101,7 @@ public class HttpChatbotCommand : ICommandAction
                 chatHistory = null;
             }
 
-            var res = await inferenceWorkflow.ExecuteAsync(req.Query, chatHistory, null, cancellationToken);
+            var res = await inferenceWorkflow.ExecuteAsync(req.Query, chatHistory, req.StepsInputs, cancellationToken);
 
             if (cancellationToken.IsCancellationRequested)
             {
@@ -161,7 +161,8 @@ public class HttpChatbotCommand : ICommandAction
                     TotalCompletionTokens = res.TotalCompletionTokens,
                     TotalPromptTokens = res.TotalPromptTokens,
                     TotalEmbeddingTokens = res.TotalEmbeddingTokens,
-                    Documents = documents
+                    Documents = documents,
+                    StepOutputs = res.Steps?.ToDictionary(step => step.Name ?? throw new Exception("step name is null"), step => step.Outputs)
                 });
             }
         }

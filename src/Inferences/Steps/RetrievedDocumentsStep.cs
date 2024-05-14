@@ -5,7 +5,7 @@ namespace AIOChatbot.Inferences.Steps;
 
 public class RetrievedDocumentsStep : IInferenceWorkflowStep
 {
-    public const string SEARCH_RESULTS_KEY = "search_results";
+    public const string SEARCH_RESULTS_KEY = "SearchResults";
     private readonly IEnumerable<IVectorDb> vectorDbs;
     public RetrievedDocumentsStep(IEnumerable<IVectorDb> vectorDbs)
     {
@@ -21,16 +21,18 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
     }
 
     const int DefaultNumberOfResults = 5;
+    const double MinScore = 0.7;
 
     public async Task<InferenceWorkflowStepResult> ExecuteAsync(InferenceWorkflowContext context, CancellationToken cancellationToken)
     {
         var stepData = context.GetStepData(nameof(RetrievedDocumentsStep));
-        var numberOfResult = stepData.TryGetInputValue(nameof(SearchParameters.NumberOfResults), DefaultNumberOfResults);
+        var numberOfResult = stepData.TryGetIntInputValue(nameof(SearchParameters.NumberOfResults), DefaultNumberOfResults);
+        var minScore = stepData.TryGetDoubleInputValue(nameof(SearchParameters.MinScore), MinScore);
         var vectorDb = GetSelectedVectorDb();
 
         var determineIntentStep = context.GetStepData(nameof(DetermineIntentStep));
         var results = await vectorDb.SearchAsync(determineIntentStep.GetOutputValue<string[]>(DetermineIntentStep.INTENTS_KEY),
-            new SearchParameters { NumberOfResults = numberOfResult },
+            new SearchParameters { NumberOfResults = numberOfResult, MinScore = minScore },
             cancellationToken);
 
         stepData.AddStepOutput(SEARCH_RESULTS_KEY, results.Documents);
@@ -47,6 +49,7 @@ public class RetrievedDocumentsStep : IInferenceWorkflowStep
         var dic = new Dictionary<string, string>
         {
             { nameof(SearchParameters.NumberOfResults), DefaultNumberOfResults.ToString() },
+            { nameof(SearchParameters.MinScore), MinScore.ToString() },
         };
         return dic;
     }

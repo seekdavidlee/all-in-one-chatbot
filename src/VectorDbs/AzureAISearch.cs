@@ -121,11 +121,10 @@ public class AzureAISearch : IVectorDb
         List<IndexedDocument> indexedDocuments = [];
         await foreach (var result in results.Value.GetResultsAsync())
         {
-            if (result.Score is null)
+            if (result.Score is null || result.Score < searchParameters.MinScore)
             {
                 continue;
             }
-
 
             indexedDocuments.Add(new IndexedDocument
             {
