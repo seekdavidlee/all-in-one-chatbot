@@ -9,9 +9,10 @@ using AIOChatbot.Commands;
 using AIOChatbot.Evals;
 using AIOChatbot.Inferences;
 using System.Diagnostics;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Logging;
 using Microsoft.Extensions.Logging;
+using AIOChatbot.Inferences.Steps;
 
 // add config
 var netConfig = new NetBricks.Config();
@@ -43,7 +44,7 @@ foreach (var ingestionType in config.IngestionTypes)
     }
     services.AddSingleton(typeof(IIngestionDataSource), Type.GetType(ingestionType) ?? throw new Exception($"invalid IVectorDbIngestion type {ingestionType}"));
 }
-services.AddSingleton<ICommandAction, ChatbotCommand>();
+services.AddSingleton<ICommandAction, ConsoleChatbotCommand>();
 services.AddSingleton<ICommandAction, IngestCommand>();
 services.AddSingleton<ICommandAction, DeleteSearchCommand>();
 services.AddSingleton<ICommandAction, LocalEvaluationCommand>();
@@ -55,11 +56,15 @@ services.AddSingleton<ICommandAction, ImportMetricsCommand>();
 services.AddSingleton<ICommandAction, RemoteEvaluationCommand>();
 services.AddSingleton<ICommandAction, ProcessQueueEvaluationCommand>();
 services.AddSingleton<ICommandAction, ProcessQueueInferenceCommand>();
+services.AddSingleton<ICommandAction, HttpChatbotCommand>();
 services.AddSingleton<EvaluationRunner>();
 services.AddSingleton<GroundTruthIngestion>();
 services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
-services.AddSingleton<IInferenceWorkflow, InferenceWorkflow>();
+services.AddSingleton<IInferenceWorkflow, SKInferenceWorkflow>();
 services.AddSingleton<IInferenceWorkflow, InferenceWorkflowQueue>();
+services.AddSingleton<IInferenceWorkflowStep, DetermineIntentStep>();
+services.AddSingleton<IInferenceWorkflowStep, RetrievedDocumentsStep>();
+services.AddSingleton<IInferenceWorkflowStep, DetermineReplyStep>();
 services.AddSingleton<EvaluationMetricWorkflow>();
 services.AddSingleton<FileCache>();
 services.AddSingleton<ReportRepository>();
@@ -67,6 +72,7 @@ services.AddSingleton<EvaluationSummarizeWorkflow>();
 services.AddSingleton<IngestionReporter>();
 services.AddSingleton<IIngestionProcessor, IngestionQueueService>();
 services.AddSingleton<IIngestionProcessor, IngestionProcessor>();
+services.AddSK();
 
 var (traceProvider, meterProvider) = services.AddDiagnosticsServices(config, DiagnosticServices.Source.Name);
 
@@ -89,8 +95,13 @@ if (command is not null)
         cts.Cancel();
     };
 
-    var sw = new Stopwatch();
-    sw.Start();
+    Stopwatch? sw = null;
+    if (!command.LongRunning)
+    {
+        sw = new Stopwatch();
+        sw.Start();
+    }
+
     try
     {
         await command.ExecuteAsync(argsConfig, cancellationToken: cts.Token);
@@ -101,11 +112,13 @@ if (command is not null)
     }
     finally
     {
-        sw.Stop();
+        if (sw is not null)
+        {
+            sw.Stop();
+            logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
+        }
+
     }
-
-    logger.LogInformation("Operation '{commandName}' completed in {commandElapsedMilliseconds}ms", command.Name, sw.ElapsedMilliseconds);
-
     meterProvider.Dispose();
     traceProvider.Dispose();
 }

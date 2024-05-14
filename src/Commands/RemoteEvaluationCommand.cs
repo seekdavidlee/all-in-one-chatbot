@@ -1,6 +1,6 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Queues;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Evals;
 using AIOChatbot.Models;
 using Microsoft.Extensions.Configuration;
@@ -25,6 +25,7 @@ public class RemoteEvaluationCommand : ICommandAction
     }
 
     public string Name => "remote-evals";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Queues;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Text;
@@ -132,4 +132,5 @@ public abstract class QueueCommandBase<T> : ICommandAction
     }
 
     public string Name => commandName;
+    public bool LongRunning => true;
 }

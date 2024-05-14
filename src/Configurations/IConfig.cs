@@ -1,7 +1,10 @@
-﻿namespace AIOChatbot.Configuration;
+﻿namespace AIOChatbot.Configurations;
 
 public interface IConfig
 {
+    string ChatbotHttpEndpoint { get; }
+    string AzureOpenAILLMDeploymentModel { get; }
+    string AzureOpenAIEndpoint { get; }
     string AzureOpenAIEmbeddings { get; }
     string AzureSearchKey { get; }
     string AzureSearchEndpoint { get; }
@@ -10,14 +13,15 @@ public interface IConfig
     string CustomAuthProviderContent { get; }
     string AzureStorageConnectionString { get; }
     int TextEmbeddingVectorDimension { get; }
-    public string OpenTelemetryConnectionString { get; }
-    public int IngestionQueuePollingInterval { get; }
-    public string[] IngestionTypes { get; }
+    string OpenTelemetryConnectionString { get; }
+    int IngestionQueuePollingInterval { get; }
+    string[] IngestionTypes { get; }
+    string[] InferenceWorkflowSteps { get; }
     string LogLevel { get; }
     int Concurrency { get; }
     int IngestionBatchSize { get; }
     int MessageDequeueCount { get; }
-    public int IngestionReportEveryXSeconds { get; }
+    int IngestionReportEveryXSeconds { get; }
     string IngestionQueueName { get; }
     string EvaluationQueueName { get; }
     string IngestionProcessorType { get; }

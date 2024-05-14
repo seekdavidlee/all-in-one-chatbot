@@ -5,6 +5,10 @@ namespace AIOChatbot.VectorDbs;
 public class IndexedDocument
 {
     public string? Id { get; set; }
+
+    public string? Source { get; set; }
+    public string? Title { get; set; }
+
     public float? Score { get; set; }
     public IDictionary<string, string>? MetaDatas { get; set; }
 

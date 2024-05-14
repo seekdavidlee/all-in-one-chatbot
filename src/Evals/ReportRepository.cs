@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Blobs;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 

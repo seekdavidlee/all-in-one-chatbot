@@ -1,23 +1,24 @@
 ﻿using Azure.AI.OpenAI;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 
 namespace AIOChatbot.Llms;
 
 public class AzureOpenAIClient : BaseAzureOpenAIClient, ILanguageModel
 {
-    private readonly string deploymentName;
+    private string? deploymentName;
     public AzureOpenAIClient(IConfig config) : base(config)
     {
-        deploymentName = Environment.GetEnvironmentVariable("AzureOpenAILLMDeploymentModel") ?? throw new Exception("Missing AzureOpenAILLMDeploymentModel!");
+        this.config = config;
     }
 
     private const int DefaultMaxTokens = 4000;
+    private readonly IConfig config;
 
     public async Task<ChatCompletionResponse> GetChatCompletionsAsync(string text, LlmOptions options, ChatHistory? chatHistory = null)
     {
         var chatCompletionsOptions = new ChatCompletionsOptions
         {
-            DeploymentName = options.DeploymentName ?? deploymentName,
+            DeploymentName = options.DeploymentName ?? config.AzureOpenAILLMDeploymentModel,
             MaxTokens = options.MaxTokens ?? DefaultMaxTokens,
             Temperature = options.Temperature ?? 0,
         };

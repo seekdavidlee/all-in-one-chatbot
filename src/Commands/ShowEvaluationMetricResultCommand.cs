@@ -15,6 +15,7 @@ public class ShowEvaluationMetricResultCommand : ICommandAction
         this.logger = logger;
     }
     public string Name => "show-metric-eval";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

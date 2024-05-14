@@ -1,4 +1,4 @@
-﻿using AIOChatbot.Configuration;
+﻿using AIOChatbot.Configurations;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 

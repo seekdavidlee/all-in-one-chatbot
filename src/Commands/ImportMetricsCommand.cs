@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Blobs;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Evals;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -20,6 +20,7 @@ public class ImportMetricsCommand : ICommandAction
     }
 
     public string Name => "import-metrics";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

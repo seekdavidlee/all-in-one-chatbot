@@ -50,11 +50,10 @@ public class EvaluationMetricWorkflow
                 Index = i,
             };
 
-            prompt = prompt.Replace("{{chat_history_text}}", ""); //todo: implement
+            prompt = prompt.Replace("{{chat_history_text}}", groundTruth.ChatHistory is not null ? groundTruth.ChatHistory.FullBody() : "");
             prompt = prompt.Replace("{{question}}", groundTruth.Question);
             prompt = prompt.Replace("{{answer}}", output.Text);
             metricResult.RawPrompt = prompt.Replace("{{documents}}", output.Documents?.FullBody());
-
 
             Stopwatch sw = new();
             sw.Start();
@@ -70,8 +69,8 @@ public class EvaluationMetricWorkflow
                 metricResult.Success = true;
                 metricResult.CompletionTokens = llmResult.CompletionTokens;
                 metricResult.PromptTokens = llmResult.PromptTokens;
-                metricResult.InferencePromptTokens = output.PromptTokens;
-                metricResult.InferenceCompletionTokens = output.CompletionTokens;
+                metricResult.InferencePromptTokens = output.TotalPromptTokens;
+                metricResult.InferenceCompletionTokens = output.TotalCompletionTokens;
             }
             catch (Exception ex)
             {

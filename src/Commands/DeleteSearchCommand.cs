@@ -10,6 +10,7 @@ public class DeleteSearchCommand : ICommandAction
         this.vectorDbs = vectorDbs;
     }
     public string Name => "delete-search";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

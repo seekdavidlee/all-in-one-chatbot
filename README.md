@@ -9,6 +9,7 @@ AIO Chatbot supports both the Azure OpenAI interface and also the ability to loa
 The entry point of this solution is a Console based application that accepts arguments but most of the configurations come from environment variables. I should note that the arguments can also be environment variables. The following are the available commands.
 
 1. chatbot - runs a chat experience in console
+1. httpchatbot - starts a http server to process inference requests
 1. ingest - ingest from configured data sources, run chunking and produce search models, embedding and finally create a search index, this is all done in a single replica
 1. ingest-queue-processing - from queue, pull chunked search models, embedding and finally create a search index, this allows you to distribute load across replicas
 1. delete-search - deletes a search index

@@ -1,5 +1,5 @@
 ﻿using Azure.AI.OpenAI;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using ChromaDBSharp.Client;
 
 namespace AIOChatbot.VectorDbs;
@@ -9,7 +9,7 @@ public class ChromaDbClient : IVectorDb, IDisposable
     private ChromaDBClient? client;
     private HttpClient? httpClient;
     private ICollectionClient? collectionClient;
-    private readonly IEnumerable< IEmbedding> embeddingList;
+    private readonly IEnumerable<IEmbedding> embeddingList;
     private readonly IConfig config;
     private float? minimumScore = 0.8f;
 
@@ -94,18 +94,18 @@ public class ChromaDbClient : IVectorDb, IDisposable
         return collectionClient.DeleteAsync([config.CollectionName]);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)
+    public async Task<IndexedDocumentResults> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
     {
         if (collectionClient is null)
         {
             throw new Exception("CollectionClient is not initialized!");
         }
         var embedding = embeddingList.GetSelectedEmbedding(config);
-        var embeddings = await embedding.GetEmbeddingsAsync([searchText], cancellationToken);
-        var results = await collectionClient.QueryAsync(queryEmbeddings: embeddings, numberOfResults: 5);
+        var embeddingResult = await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken);
+        var results = await collectionClient.QueryAsync(queryEmbeddings: embeddingResult.Vectors, numberOfResults: searchParameters.NumberOfResults);
         if (results is null || results.Ids is null || results.Distances is null)
         {
-            return [];
+            return new IndexedDocumentResults { Documents = [] };
         }
 
         var docs = new List<IndexedDocument>();
@@ -137,6 +137,10 @@ public class ChromaDbClient : IVectorDb, IDisposable
             }
         }
 
-        return docs.Where(x => x.Score >= minimumScore).OrderByDescending(x => x.Score);
+        // todo: add tokencount
+        return new IndexedDocumentResults
+        {
+            Documents = [.. docs.Where(x => x.Score >= minimumScore).OrderByDescending(x => x.Score)]
+        };
     }
 }

@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Blobs;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Evals;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -21,6 +21,7 @@ public class ImportGroundTruthsCommand : ICommandAction
         this.config = config;
     }
     public string Name => "import-ground-truths";
+    public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
     {

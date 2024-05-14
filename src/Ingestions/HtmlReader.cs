@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Blobs;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Logging;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;

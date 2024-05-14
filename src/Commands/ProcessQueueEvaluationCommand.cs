@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Blobs.Specialized;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Evals;
 using AIOChatbot.Models;
 using Microsoft.Extensions.Logging;
@@ -12,7 +12,6 @@ public class ProcessQueueEvaluationCommand : QueueCommandBase<GroundTruthQueueMe
     private readonly ILogger<ProcessQueueEvaluationCommand> logger;
     private readonly IConfig config;
     private readonly EvaluationRunner evaluationRunner;
-
 
     public ProcessQueueEvaluationCommand(ILogger<ProcessQueueEvaluationCommand> logger, IConfig config, EvaluationRunner evaluationRunner)
         : base("ingest-queue-evals", config.EvaluationQueueName, logger, config)

@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Queues;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using AIOChatbot.Inferences;
 using AIOChatbot.Llms;
 using AIOChatbot.Models;
@@ -35,7 +35,7 @@ public class ProcessQueueInferenceCommand : QueueCommandBase<InferenceRequestQue
         var inferenceWorkflow = inferenceWorkflows.Where(x => x.GetType().Name != nameof(InferenceWorkflowQueue))
             .GetInferenceWorkflow(config);
 
-        var output = await inferenceWorkflow.ExecuteAsync(message.Query, new ChatHistory { Chats = message.ChatHistory }, cancellationToken);
+        var output = await inferenceWorkflow.ExecuteAsync(message.Query, new ChatHistory { Chats = message.ChatHistory }, null, cancellationToken);
 
         if (!queueClients.TryGetValue(message.ResponseQueueName, out var queueClient))
         {

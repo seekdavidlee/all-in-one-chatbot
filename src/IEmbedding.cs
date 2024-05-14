@@ -1,6 +1,8 @@
-﻿namespace AIOChatbot;
+﻿using AIOChatbot.Embeddings;
+
+namespace AIOChatbot;
 
 public interface IEmbedding
 {
-    Task<List<float[]>> GetEmbeddingsAsync(string[] textList, CancellationToken cancellationToken);
+    Task<EmbeddingResult> GetEmbeddingsAsync(string[] textList, CancellationToken cancellationToken);
 }

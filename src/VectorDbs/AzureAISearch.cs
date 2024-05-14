@@ -1,10 +1,9 @@
 ﻿using Azure;
-using Azure.AI.OpenAI;
 using Azure.Search.Documents;
 using Azure.Search.Documents.Indexes;
 using Azure.Search.Documents.Indexes.Models;
 using Azure.Search.Documents.Models;
-using AIOChatbot.Configuration;
+using AIOChatbot.Configurations;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.Json;
@@ -17,8 +16,7 @@ public class AzureAISearch : IVectorDb
     private readonly IEnumerable<IEmbedding> embeddingList;
     private readonly IConfig config;
     private readonly ILogger<AzureAISearch> logger;
-    private Uri? azureSearchEndpoint;
-    private AzureKeyCredential? keyCredentials;
+
     private readonly ConcurrentDictionary<string, SearchClient> searchClients = [];
 
     public AzureAISearch(IEnumerable<IEmbedding> embeddings, IConfig config, ILogger<AzureAISearch> logger)
@@ -32,9 +30,8 @@ public class AzureAISearch : IVectorDb
     {
         if (searchIndexClient is null)
         {
-            azureSearchEndpoint = new(config.AzureSearchEndpoint);
-            keyCredentials = new(config.AzureSearchKey);
-            searchIndexClient = new(azureSearchEndpoint, keyCredentials);
+            AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
+            searchIndexClient = new(new Uri(this.config.AzureSearchEndpoint), keyCredentials);
         }
 
         return searchIndexClient;
@@ -70,7 +67,8 @@ public class AzureAISearch : IVectorDb
     {
         if (!searchClients.TryGetValue(collectionName, out var searchClient))
         {
-            searchClient = new SearchClient(azureSearchEndpoint, collectionName, keyCredentials);
+            AzureKeyCredential keyCredentials = new(config.AzureSearchKey);
+            searchClient = new SearchClient(new Uri(this.config.AzureSearchEndpoint), collectionName, keyCredentials);
             searchClients.TryAdd(collectionName, searchClient);
         }
 
@@ -99,21 +97,23 @@ public class AzureAISearch : IVectorDb
         return (success, error);
     }
 
-    public async Task<IEnumerable<IndexedDocument>> SearchAsync(string searchText, CancellationToken cancellationToken)
+    public async Task<IndexedDocumentResults> SearchAsync(string[] searchTexts, SearchParameters searchParameters, CancellationToken cancellationToken)
     {
         var embedding = embeddingList.GetSelectedEmbedding(config);
-        var embeddings = (await embedding.GetEmbeddingsAsync([searchText], cancellationToken)).Single();
-
-        var query = new VectorizedQuery(embeddings);
-        query.Fields.Add("contentVector");
-        query.KNearestNeighborsCount = 5;
+        var embeddings = (await embedding.GetEmbeddingsAsync(searchTexts, cancellationToken));
 
         var vectorSearchOptions = new VectorSearchOptions();
-        vectorSearchOptions.Queries.Add(query);
+        foreach (var embed in embeddings.Vectors)
+        {
+            var query = new VectorizedQuery(embed);
+            query.Fields.Add("contentVector");
+            query.KNearestNeighborsCount = searchParameters.NumberOfResults;
+            vectorSearchOptions.Queries.Add(query);
+        }
 
         var searchOptions = new SearchOptions
         {
-            VectorSearch = vectorSearchOptions
+            VectorSearch = vectorSearchOptions,
         };
 
         var results = await GetSearchClient(config.CollectionName).SearchAsync<SearchModel>(searchOptions, cancellationToken);
@@ -121,7 +121,7 @@ public class AzureAISearch : IVectorDb
         List<IndexedDocument> indexedDocuments = [];
         await foreach (var result in results.Value.GetResultsAsync())
         {
-            if (result.Score is null)
+            if (result.Score is null || result.Score < searchParameters.MinScore)
             {
                 continue;
             }
@@ -129,6 +129,8 @@ public class AzureAISearch : IVectorDb
             indexedDocuments.Add(new IndexedDocument
             {
                 Score = (float)result.Score,
+                Source = result.Document.Filepath ?? result.Document.Url ?? "none",
+                Title = result.Document.Title,
                 Id = result.Document.Id,
                 MetaDatas = result.Document.MetaData is not null ?
                     JsonSerializer.Deserialize<IDictionary<string, string>>(result.Document.MetaData) :
@@ -137,6 +139,10 @@ public class AzureAISearch : IVectorDb
             });
         }
 
-        return indexedDocuments.OrderByDescending(x => x.Score);
+        return new IndexedDocumentResults
+        {
+            TotalTokens = embeddings.TotalTokens,
+            Documents = [.. indexedDocuments.OrderByDescending(x => x.Score)],
+        };
     }
 }
