@@ -14,6 +14,9 @@ using AIOChatbot.Logging;
 using Microsoft.Extensions.Logging;
 using AIOChatbot.Inferences.Steps;
 
+// support the use of .env file
+DotNetEnv.Env.Load();
+
 // add config
 var netConfig = new NetBricks.Config();
 var config = new Config(netConfig);
