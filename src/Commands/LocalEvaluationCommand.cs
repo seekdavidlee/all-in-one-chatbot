@@ -85,7 +85,7 @@ public class LocalEvaluationCommand : ICommandAction
         }
 
         var random = new Random();
-        var groups = groundTruths.GroupBy(x => x.DataSource).ToDictionary(g => g.Key ?? throw new Exception("key is invalid"),
+        var groups = groundTruths.SelectMany(x => x.GroundTruths).GroupBy(x => x.DataSource).ToDictionary(g => g.Key ?? throw new Exception("key is invalid"),
             g => top is not null && g.Count() > top ?
             g.OrderBy(x => random.Next()).Take(top.Value) :
             g.ToList());

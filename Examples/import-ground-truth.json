@@ -1,0 +1,20 @@
+{
+  "Name": "chatcopilot",
+  "ProjectId": "chatcopilot",
+  "GroundTruthVersionId": "alpha01",
+  "GroundTruthsMapping": [
+    {
+      "Reader": "ExcelGrouthTruthReader",
+      "ReaderConfig": {
+        "FilePath": "Sample.xlsx",
+        "GroupIdColumn": "A",
+        "QuestionColumn": "B",
+        "IntentColumn": "D",
+        "CitationsColumn": "E",
+        "StartRowIndex": 1,
+        "WorkSheetIndex": 0,
+        "AnswersColumn": ["C"]
+      }
+    }
+  ]
+}

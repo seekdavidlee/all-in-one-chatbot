@@ -46,14 +46,14 @@ public class ImportGroundTruthsCommand : ICommandAction
             return;
         }
 
-        var groundTruths = await groundTruthIngestion.RunAsync(groundTruthsConfig, cancellationToken);
+        var groundTruthsGroups = await groundTruthIngestion.RunAsync(groundTruthsConfig, cancellationToken);
 
         if (cancellationToken.IsCancellationRequested)
         {
             return;
         }
 
-        if (!groundTruths.Any())
+        if (!groundTruthsGroups.Any())
         {
             logger.LogWarning("no ground truths found per configuration file-path {configFilePath}", configFilePath);
             return;
@@ -67,26 +67,33 @@ public class ImportGroundTruthsCommand : ICommandAction
 
         // report every few seconds
         DateTime lastReport = DateTime.UtcNow;
-        for (var i = 0; i < groundTruths.Count(); i++)
+        for (var i = 0; i < groundTruthsGroups.Count(); i++)
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
 
-            var groundTruth = groundTruths.ElementAt(i);
-            var path = $"{groundTruthsConfig.ProjectId}\\{groundTruthsConfig.GroundTruthVersionId}\\{Guid.NewGuid():N}.json";
-            var blob = new BlobClient(config.AzureStorageConnectionString, config.GroundTruthStorageName, path);
-            await blob.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(groundTruth))), cancellationToken);
+            var groundTruthsGroup = groundTruthsGroups.ElementAt(i);
+            List<GroundTruth> history = [];
+            foreach(var groundTruth in groundTruthsGroup.GroundTruths)
+            {
+                groundTruth.PreviousGroundTruths = history;
+                var path = $"{groundTruthsConfig.ProjectId}\\{groundTruthsConfig.GroundTruthVersionId}\\{Guid.NewGuid():N}.json";
+                var blob = new BlobClient(config.AzureStorageConnectionString, config.GroundTruthStorageName, path);
+                await blob.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(groundTruth))), cancellationToken);
+
+                history.Add(groundTruth);
+            }
 
             var elasped = DateTime.UtcNow - lastReport;
             if (elasped.TotalSeconds > config.IngestionReportEveryXSeconds)
             {
-                logger.LogInformation("current import progress: {current}/{total}", i, groundTruths.Count());
+                logger.LogInformation("current import progress: {current}/{total}", i, groundTruthsGroups.Count());
                 lastReport = DateTime.UtcNow;
             }
         }
 
-        logger.LogInformation("imported {groundTruthsTotal} ground-truths", groundTruths.Count());
+        logger.LogInformation("imported {groundTruthsTotal} ground-truths", groundTruthsGroups.Count());
     }
 }
