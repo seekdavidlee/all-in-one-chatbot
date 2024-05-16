@@ -6,7 +6,7 @@ AIO Chatbot supports both the Azure OpenAI interface and also the ability to loa
 
 ## Design
 
-The entry point of this solution is a Console based application that accepts arguments but most of the configurations come from environment variables. I should note that the arguments can also be environment variables. The following are the available commands.
+The entry point of this solution is a Console based application that accepts arguments but most of the configurations come from environment variables. I should note that the arguments can also be environment variables. The following are the available commands. Use environment variable key `AIOCommand`.
 
 1. chatbot - runs a chat experience in console
 1. httpchatbot - starts a http server to process inference requests

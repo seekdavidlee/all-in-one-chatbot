@@ -28,7 +28,7 @@ public class ExcelGrouthTruthReader : IGroundTruthReader
                 continue;
             }
 
-            string? intent = row.Cell(config.IntentColumn).GetString();
+            string? intent = config.IntentColumn is not null ? row.Cell(config.IntentColumn).GetString() : null;
 
             foreach (var answerCol in config.AnswersColumn)
             {

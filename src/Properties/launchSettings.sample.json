@@ -7,7 +7,7 @@
       "commandName": "Project",
       "environmentVariables": {
         "INCLUDE_CREDENTIAL_TYPES": "env",
-        "command": "httpchatbot",
+        "AIOCommand": "httpchatbot",
         "LogLevel": "Information",
         "ChatbotHttpEndpoint": "http://localhost:5000/",
         "InferenceProcessorType": "SKInferenceWorkflow",
@@ -38,7 +38,7 @@
       "commandName": "Project",
       "environmentVariables": {
         "INCLUDE_CREDENTIAL_TYPES": "env",
-        "command": "chatbot",
+        "AIOCommand": "chatbot",
         "LogLevel": "Information",
         "ChatbotHttpEndpoint": "http://localhost:5000/",
         "InferenceProcessorType": "SKInferenceWorkflow",
@@ -68,7 +68,7 @@
       "commandName": "Project",
       "environmentVariables": {
         "INCLUDE_CREDENTIAL_TYPES": "env",
-        "command": "import-ground-truths",
+        "AIOCommand": "import-ground-truths",
         "GroundTruthStorageName": "evaluations-ground-truths",
         "LogLevel": "Information",
         "config-filepath": "",
@@ -84,7 +84,7 @@
       "commandName": "Project",
       "environmentVariables": {
         "INCLUDE_CREDENTIAL_TYPES": "env",
-        "command": "ingest",
+        "AIOCommand": "ingest",
         "LogLevel": "Information",
         "PageContentXPath": "",
         "TextEmbeddingName": "text-embedding-3-large",
@@ -121,7 +121,7 @@
       "commandName": "Project",
       "environmentVariables": {
         "INCLUDE_CREDENTIAL_TYPES": "env",
-        "command": "ingest",
+        "AIOCommand": "ingest",
         "LogLevel": "Information",
         "PageContentXPath": "",
         "TextEmbeddingName": "text-embedding-3-large",

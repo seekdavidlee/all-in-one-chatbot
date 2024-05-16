@@ -10,22 +10,20 @@ public class ExcelReaderConfig
         QuestionColumn = ((JsonElement)config["QuestionColumn"]).GetString() ?? throw new Exception("missing QuestionColumn");
         StartRowIndex = ((JsonElement)config["StartRowIndex"]).GetInt32();
         AnswersColumn = ((JsonElement)config["AnswersColumn"]).Deserialize<string[]>() ?? throw new Exception("missing AnswersColumn");
-        var citationsColumn = config["CitationsColumn"];
-        if (citationsColumn is not null)
+
+        if (config.TryGetValue("CitationsColumn", out object? value0) && value0 is JsonElement citationsColumn)
         {
-            CitationsColumn = ((JsonElement)citationsColumn).GetString();
+            CitationsColumn = citationsColumn.GetString();
         }
 
-        var groupIdColumn = config["GroupIdColumn"];
-        if (groupIdColumn is not null)
+        if (config.TryGetValue("GroupIdColumn", out object? value1) && value1 is JsonElement groupIdColumn)
         {
-            GroupIdColumn = ((JsonElement)groupIdColumn).GetString();
+            GroupIdColumn = groupIdColumn.GetString();
         }
 
-        var intentColumn = config["IntentColumn"];
-        if (intentColumn is not null)
+        if (config.TryGetValue("IntentColumn", out object? value2) && value2 is JsonElement intentColumn)
         {
-            IntentColumn = ((JsonElement)intentColumn).GetString();
+            IntentColumn = intentColumn.GetString();
         }
 
         WorkSheetIndex = ((JsonElement)config["WorkSheetIndex"]).GetInt32();
