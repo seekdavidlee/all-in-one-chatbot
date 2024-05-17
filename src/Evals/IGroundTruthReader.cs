@@ -3,5 +3,5 @@
 public interface IGroundTruthReader
 {
     string Name { get; }
-    Task<IEnumerable<GroundTruth>> ReadAsync(GroundTruthMapping groundTruthMapping);
+    Task<IEnumerable<GroundTruthGroup>> ReadAsync(GroundTruthMapping groundTruthMapping);
 }

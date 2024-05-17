@@ -6,14 +6,14 @@ AIO Chatbot supports both the Azure OpenAI interface and also the ability to loa
 
 ## Design
 
-The entry point of this solution is a Console based application that accepts arguments but most of the configurations come from environment variables. I should note that the arguments can also be environment variables. The following are the available commands.
+The entry point of this solution is a Console based application that accepts arguments but most of the configurations come from environment variables. I should note that the arguments can also be environment variables. The following are the available commands. Use environment variable key `AIOCommand`.
 
 1. chatbot - runs a chat experience in console
 1. httpchatbot - starts a http server to process inference requests
 1. ingest - ingest from configured data sources, run chunking and produce search models, embedding and finally create a search index, this is all done in a single replica
 1. ingest-queue-processing - from queue, pull chunked search models, embedding and finally create a search index, this allows you to distribute load across replicas
 1. delete-search - deletes a search index
-1. import-ground-truths - import ground truths from Excel docs with a mapping file into Azure Blob storage
+1. import-ground-truths - import ground truths from Excel docs with a mapping file into Azure Blob storage, check this [example](./Examples/import-ground-truths/README.md)
 1. import-metrics - import metrics used during evaluation into Azure blob storage
 1. local-evals - run evaluations locally, this allows you to load inference locally or you can also point to a hosted inference
 1. remote-evals - run evaluations remotely

@@ -13,7 +13,7 @@ public class GroundTruthIngestion
         this.logger = logger;
     }
 
-    public async Task<IEnumerable<GroundTruth>> RunAsync(EvaluationConfig config, CancellationToken cancellationToken)
+    public async Task<IEnumerable<GroundTruthGroup>> RunAsync(EvaluationConfig config, CancellationToken cancellationToken)
     {
         if (config.GroundTruthsMapping is null)
         {
@@ -21,7 +21,7 @@ public class GroundTruthIngestion
             return [];
         }
 
-        List<GroundTruth> groundTruths = [];
+        List<GroundTruthGroup> groundTruths = [];
 
         foreach (var mapping in config.GroundTruthsMapping)
         {

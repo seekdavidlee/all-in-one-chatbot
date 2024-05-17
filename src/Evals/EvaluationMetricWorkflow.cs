@@ -50,7 +50,15 @@ public class EvaluationMetricWorkflow
                 Index = i,
             };
 
-            prompt = prompt.Replace("{{chat_history_text}}", groundTruth.ChatHistory is not null ? groundTruth.ChatHistory.FullBody() : "");
+            var chatHistory = new ChatHistory
+            {
+                Chats = groundTruth.PreviousGroundTruths.Select(x => new ChatEntry
+                {
+                    User = x.Question,
+                    Bot = x.Answer,
+                }).ToList()
+            };
+            prompt = prompt.Replace("{{chat_history_text}}", chatHistory.FullBody());
             prompt = prompt.Replace("{{question}}", groundTruth.Question);
             prompt = prompt.Replace("{{answer}}", output.Text);
             metricResult.RawPrompt = prompt.Replace("{{documents}}", output.Documents?.FullBody());

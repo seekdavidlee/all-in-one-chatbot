@@ -1,6 +1,4 @@
-﻿using AIOChatbot.Llms;
-
-namespace AIOChatbot.Evals;
+﻿namespace AIOChatbot.Evals;
 
 public class GroundTruth
 {
@@ -8,6 +6,8 @@ public class GroundTruth
     public string? Answer { get; set; }
     public string? DataSource { get; set; }
     public string? EntrySource { get; set; }
-    public ChatHistory? ChatHistory { get; set; }
+    public string? Intent { get; set; }
     public IDictionary<string, object>? Metadata { get; set; }
+    public List<GroundTruthCitation>? Citations { get; set; }
+    public List<GroundTruth> PreviousGroundTruths { get; set; } = [];
 }

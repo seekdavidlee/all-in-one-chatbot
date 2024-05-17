@@ -20,7 +20,7 @@ public class LocalEmbedding : IEmbedding
             modelPath ??= Environment.GetEnvironmentVariable("EmbeddingFilePath") ?? throw new Exception("Missing EmbeddingFilePath!"); // change it to your own model path.
             if (embedder is null)
             {
-                var @params = new ModelParams(modelPath) { EmbeddingMode = true };
+                var @params = new ModelParams(modelPath) { Embeddings = true };
                 using var weights = LLamaWeights.LoadFromFile(@params);
                 embedder = new LLamaEmbedder(weights, @params);
             }

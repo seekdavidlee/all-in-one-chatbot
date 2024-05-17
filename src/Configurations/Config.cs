@@ -89,8 +89,13 @@ public class Config : IConfig
     public string ProjectStorageName { get; }
     public string InferenceProcessorType { get; }
 
-    public void Validate()
+    public void Validate(string commandName)
     {
+        // todo: validate configuration based on commandName
+
+        this.config.Require("OpenTelemetryConnectionString", this.OpenTelemetryConnectionString, hideValue: false);
+        this.config.Require("LogLevel", this.LogLevel, hideValue: false);
+
         this.config.Optional("AzureOpenAIEndpoint", this.AzureOpenAIEndpoint, hideValue: false);
         this.config.Optional("AzureOpenAILLMDeploymentModel", this.AzureOpenAILLMDeploymentModel, hideValue: false);
         this.config.Optional("AzureOpenAIEmbeddings", this.AzureOpenAIEmbeddings, hideValue: true);
@@ -99,11 +104,11 @@ public class Config : IConfig
         this.config.Optional("AzureOpenAIKey", this.AzureOpenAIKey, hideValue: true);
         this.config.Optional("CustomAuthProviderUrl", this.CustomAuthProviderUrl, hideValue: true);
         this.config.Optional("AzureStorageConnectionString", this.AzureStorageConnectionString, hideValue: true);
-        this.config.Require("OpenTelemetryConnectionString", this.OpenTelemetryConnectionString, hideValue: false);
+
         this.config.Optional("IngestionTypes", this.IngestionTypes, hideValue: false);
         this.config.Optional("InferenceWorkflowSteps", this.InferenceWorkflowSteps, hideValue: false);
-        this.config.Require("LogLevel", this.LogLevel, hideValue: false);
-        this.config.Require("TextEmbeddingVectorDimension", this.TextEmbeddingVectorDimension, hideValue: false);
+
+        this.config.Optional("TextEmbeddingVectorDimension", this.TextEmbeddingVectorDimension, hideValue: false);
         this.config.Optional("Concurrency", this.Concurrency, hideValue: false);
         this.config.Optional("IngestionBatchSize", this.IngestionBatchSize, hideValue: false);
         this.config.Optional("IngestionReportEveryXSeconds", this.IngestionReportEveryXSeconds, hideValue: false);
