@@ -20,7 +20,10 @@ public class ImportGroundTruthsCommand : ICommandAction
         this.groundTruthIngestion = groundTruthIngestion;
         this.config = config;
     }
-    public string Name => "import-ground-truths";
+
+    public const string Command = "import-ground-truths";
+
+    public string Name => Command;
     public bool LongRunning => false;
 
     public async Task ExecuteAsync(IConfiguration argsConfiguration, CancellationToken cancellationToken)
@@ -78,7 +81,12 @@ public class ImportGroundTruthsCommand : ICommandAction
             List<GroundTruth> history = [];
             foreach(var groundTruth in groundTruthsGroup.GroundTruths)
             {
-                groundTruth.PreviousGroundTruths = history;
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                groundTruth.PreviousGroundTruths = history.Clone();
                 var path = $"{groundTruthsConfig.ProjectId}\\{groundTruthsConfig.GroundTruthVersionId}\\{Guid.NewGuid():N}.json";
                 var blob = new BlobClient(config.AzureStorageConnectionString, config.GroundTruthStorageName, path);
                 await blob.UploadAsync(new MemoryStream(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(groundTruth))), cancellationToken);

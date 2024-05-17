@@ -36,5 +36,5 @@ public interface IConfig
     string EvaluationStorageName { get; }
     string GroundTruthStorageName { get; }
     string ProjectStorageName { get; }
-    void Validate();
+    void Validate(string commandName);
 }

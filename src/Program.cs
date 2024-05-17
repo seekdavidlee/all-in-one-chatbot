@@ -13,31 +13,51 @@ using AIOChatbot.Configurations;
 using AIOChatbot.Logging;
 using Microsoft.Extensions.Logging;
 using AIOChatbot.Inferences.Steps;
+using Azure.Identity;
 
 // support the use of .env file
 DotNetEnv.Env.Load();
-
-// add config
-var netConfig = new NetBricks.Config();
-var config = new Config(netConfig);
-config.Validate();
 
 IConfiguration argsConfig = new ConfigurationBuilder()
        .AddCommandLine(args)
        .AddEnvironmentVariables()
        .Build();
 
+var cmdName = argsConfig["AIOCommand"];
+if (cmdName is null)
+{
+    Console.WriteLine("AIOCommand is missing");
+    return -1;
+}
+
+// add config
+Config config;
+
+try
+{
+    config = new Config(new NetBricks.Config());
+}
+catch (CredentialUnavailableException)
+{
+    Console.ForegroundColor = ConsoleColor.Red;
+    Console.WriteLine("provided credentials is not valid, ensure environment variable INCLUDE_CREDENTIAL_TYPES is set correctly");
+    Console.ResetColor();
+    return -4;
+}
+
+config.Validate(cmdName);
+
 var services = new ServiceCollection();
 services.AddSingleton<IConfig>(config);
 services.AddHttpClient();
+services.AddSingleton<FileCache>();
 
-services.AddSingleton<GroundTruthIngestion>();
-services.AddSingleton<ICommandAction, ImportGroundTruthsCommand>();
-services.AddSingleton<IGroundTruthReader, ExcelGrouthTruthReader>();
 
-var cmdName = argsConfig["AIOCommand"];
-// todo: don't hardcode this!
-if (cmdName != "import-ground-truths")
+if (cmdName == ImportGroundTruthsCommand.Command)
+{
+    services.AddImportGroundTruthsCommand();
+}
+else
 {
     services.AddSingleton<IEmbedding, LocalEmbedding>();
     services.AddSingleton<IVectorDb, ChromaDbClient>();
@@ -75,7 +95,7 @@ if (cmdName != "import-ground-truths")
     services.AddSingleton<IInferenceWorkflowStep, RetrievedDocumentsStep>();
     services.AddSingleton<IInferenceWorkflowStep, DetermineReplyStep>();
     services.AddSingleton<EvaluationMetricWorkflow>();
-    services.AddSingleton<FileCache>();
+
     services.AddSingleton<ReportRepository>();
     services.AddSingleton<EvaluationSummarizeWorkflow>();
     services.AddSingleton<IngestionReporter>();
@@ -86,13 +106,12 @@ if (cmdName != "import-ground-truths")
 
 var (traceProvider, meterProvider) = services.AddDiagnosticsServices(config, DiagnosticServices.Source.Name);
 
-
 var provider = services.BuildServiceProvider();
 var command = provider.GetServices<ICommandAction>().SingleOrDefault(c => c.Name == cmdName);
 if (command is not null)
 {
     var logger = provider.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("Command started at: {0}", DateTime.UtcNow);
+    logger.LogInformation("Command started at: {commandStarted}", DateTime.UtcNow);
     Console.ForegroundColor = ConsoleColor.Green;
     Console.WriteLine("press Ctrl+C to stop...");
     Console.ResetColor();
@@ -112,13 +131,16 @@ if (command is not null)
         sw.Start();
     }
 
+    int returnCode;
     try
     {
         await command.ExecuteAsync(argsConfig, cancellationToken: cts.Token);
+        returnCode = 0;
     }
     catch (Exception ex)
     {
         logger.LogError(ex, "Error executing command '{commandName}'", command.Name);
+        returnCode = -3;
     }
     finally
     {
@@ -131,10 +153,12 @@ if (command is not null)
     }
     meterProvider.Dispose();
     traceProvider.Dispose();
+    return returnCode;
 }
 else
 {
     Console.WriteLine($"Command '{cmdName}' not found");
+    return -2;
 }
 
 

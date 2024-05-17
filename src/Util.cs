@@ -5,6 +5,7 @@ using AIOChatbot.VectorDbs;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks.Dataflow;
 
 namespace AIOChatbot;
@@ -70,5 +71,10 @@ public static class Util
     public static IInferenceWorkflow GetInferenceWorkflow(this IEnumerable<IInferenceWorkflow> inferenceWorkflows, IConfig config)
     {
         return inferenceWorkflows.Single(x => x.GetType().Name == config.InferenceProcessorType);
+    }
+
+    public static T Clone<T>(this T obj)
+    {
+        return JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(obj)) ?? throw new Exception("unable to clone instance");
     }
 }
