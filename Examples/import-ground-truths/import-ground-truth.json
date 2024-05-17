@@ -6,7 +6,7 @@
     {
       "Reader": "ExcelGrouthTruthReader",
       "ReaderConfig": {
-        "FilePath": "Sample.xlsx",
+        "FilePath": "..\\..\\Examples\\import-ground-truths\\Sample.xlsx",
         "GroupIdColumn": "A",
         "QuestionColumn": "B",
         "IntentColumn": "D",
